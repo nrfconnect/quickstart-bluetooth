@@ -1,0 +1,89 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Current state
+
+This repo is **pre-implementation**: it contains only `PLAN.md` (the design basis) with
+no source code and no commits yet. `PLAN.md` is the authoritative spec for what gets
+built — read it before making changes. When implementing, follow the layout, config, and
+upstream/out-of-tree split it defines, and keep it updated as decisions change.
+
+## What this is
+
+`quickstart-bluetooth` is a **production out-of-tree nRF Connect SDK (NCS) application**
+for the *nRF Connect for Desktop Quick Start* guide. It is the `peripheral_lbs` sample
+(button/LED over BLE) plus Memfault observability delivered over the Memfault Diagnostic
+Service (MDS) BLE gateway path: the device collects heartbeat metrics and coredumps and
+serves them as chunks to a phone/desktop gateway that performs the HTTPS upload.
+**The device never does on-device HTTP/TLS.**
+
+Target board is **`nrf54l15dk/nrf54l15/cpuapp` only**.
+
+## Build & run (T2 west workspace)
+
+This is the **top-level west manifest repository** (T2 star topology). It imports `sdk-nrf`,
+which pulls Zephyr and all NCS modules. Building requires the NCS toolchain.
+
+```sh
+# Bootstrap the workspace (done once, outside the repo dir)
+west init -m https://github.com/<org>/quickstart-bluetooth <workspace-dir>
+cd <workspace-dir>
+west update
+
+# Build / flash for the only supported board
+west build -b nrf54l15dk/nrf54l15/cpuapp quickstart-bluetooth/app
+west flash
+```
+
+The single `zephyr.hex` is the complete image — there is **no MCUboot/sysbuild**, no
+merged/signed hex, no DFU zip (OTA is explicitly out of scope).
+
+## Architecture & key constraints
+
+- **Upstream-first dependency model.** The reusable Memfault glue is upstreamed into
+  `sdk-nrf` (and the vendored Memfault firmware SDK), *not* carried as an out-of-tree
+  fork. `west.yml` pins a **specific `sdk-nrf` main SHA** (not the `main` branch) that
+  already contains that work. Bumping the SHA is a deliberate, CI-gated action. See
+  PLAN.md §3 and §9 for exactly what lives upstream vs. in this repo.
+- **Plain Zephyr app, not a Zephyr module.** Default to a plain application under `app/`
+  with no `zephyr/module.yml`. Only add module machinery if app-local shared code emerges.
+- **Runtime project key via settings shell.** The Memfault project key is provisioned over
+  the serial shell: `settings write string memfault/project_key <32-char-key>`. **The key
+  is applied on boot, not live — a `kernel reboot cold` is required after writing.** A
+  stored key overrides the compile-time `CONFIG_MEMFAULT_NCS_PROJECT_KEY`. The key is
+  stored **unencrypted** (same at-rest protection as baking it into flash). BLE/SMP
+  provisioning is out of scope.
+- **Memfault feature scope is core-only:** heartbeat metrics + RAM-backed coredump +
+  runtime key, on top of the LBS button/LED base. No MCUboot/MCUmgr/SMP/OTA.
+- **Coredump is RAM-backed** (`CONFIG_MEMFAULT_RAM_BACKED_COREDUMP`), so it needs no
+  bootloader or flash partition. Re-measure size with the `mflt coredump_size` shell
+  command on the LBS build before fixing `CONFIG_MEMFAULT_RAM_BACKED_COREDUMP_SIZE`.
+
+## App behavior to preserve (PLAN.md §4.2)
+
+- **MDS access control:** register `bt_mds_cb` with an `access_enable` callback that gates
+  MDS access to the secured/connected gateway link (`CONFIG_BT_SMP=y` is required).
+- **Heartbeat-on-connect:** in `security_changed`, once the link is secured, call
+  `memfault_metrics_heartbeat_debug_trigger()` once so the device shows up in Memfault
+  immediately instead of waiting for the periodic timer.
+- **Crash button (demo-only):** map an LBS button to a forced fault (e.g. `k_oops`) to
+  demonstrate a coredump. Comment it clearly as demo-only.
+- Keep the LBS LED/button behavior so it remains a recognizable LBS device for the guide.
+
+## Versioning
+
+`app/VERSION` (Zephyr/Asset-Tracker-Template format) is the **single source of truth** for
+the firmware version. With `CONFIG_MEMFAULT_NCS_FW_VERSION_STATIC=y` and no explicit
+`CONFIG_MEMFAULT_NCS_FW_VERSION`, the Memfault software version defaults to
+`$(APP_VERSION_TWEAK_STRING)` (e.g. `1.0.0+0`). **Do not hardcode the firmware version** —
+bump a release by editing `app/VERSION` only. The GNU Build ID (used for symbolication) is
+independent and changes every build — `zephyr.elf` must be uploaded to Memfault for
+symbol resolution.
+
+## Open items gating implementation (PLAN.md §8)
+
+Several decisions are unresolved and block a clean task breakdown — most critically whether
+a released Memfault firmware SDK provides native runtime project-key support
+(`MEMFAULT_PROJECT_KEY_LEN`, runtime-settable `api_key`) and which `sdk-nrf` SHA pins it.
+Check PLAN.md §3.3 and §8 before assuming any of these are settled.
