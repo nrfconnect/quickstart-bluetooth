@@ -1,0 +1,22 @@
+# West workspace metadata (this repo is the manifest repo; the workspace is
+# created around it by `west init`).
+/.west/
+
+# Build output
+build/
+build*/
+twister-out/
+twister-out.*/
+
+# Editor / OS cruft
+*.swp
+*~
+.DS_Store
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: TBD  (license decision tracked by NPE-1777)
+#
+# App-specific Kconfig. Intentionally thin — almost all configuration lives in
+# prj.conf (PLAN.md §2.2, §4.3). Add app-local options here only if they emerge.
+
+source "Kconfig.zephyr"
