@@ -52,6 +52,11 @@ manifest:
       # PHASE 1: temporary fork (see header). PHASE 2: switch to `remote: ncs`.
       remote: fork
       repo-path: sdk-nrf
+      # Check out at `nrf` (not the project name `sdk-nrf`): the sdk-nrf module
+      # has no explicit name in its zephyr/module.yml, so Zephyr derives the
+      # module name from the directory. NCS tooling assumes the module is named
+      # `nrf`, so the directory must be `nrf`.
+      path: nrf
       revision: ee28a77e225f30ebc2255790a19d06f23b2cb4ce
       import: true
 
