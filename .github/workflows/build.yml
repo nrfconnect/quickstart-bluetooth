@@ -7,8 +7,11 @@
 #
 # TOOLCHAIN PIN: `container.image` must match the NCS base of the sdk-nrf
 # revision pinned in west.yml. The temporary fork (Phase 1) is based on NCS
-# v3.3.0, so we use the v3.3-branch toolchain image. Bump this tag together with
-# the manifest SHA (the SHA-bump / fork-swap policy in west.yml).
+# v3.3.0; we pin the v3.3.1 toolchain image (patch-compatible host tools / Zephyr
+# SDK / west, and the tag this app was verified green against). NOTE: the public
+# ghcr package is tagged with semantic versions (v3.3.0, v3.3.1, ...), NOT the
+# internal `-branch` suffix. Bump this tag together with the manifest SHA (the
+# SHA-bump / fork-swap policy in west.yml).
 
 name: Build
 
@@ -26,7 +29,7 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.3-branch
+      image: ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.3.1
     defaults:
       run:
         shell: bash
