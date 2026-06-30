@@ -1,4 +1,6 @@
-# SPDX-License-Identifier: TBD  (license decision tracked by NPE-1777)
+# Copyright (c) 2026 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 # quickstart-bluetooth application (peripheral_lbs + Memfault over MDS).
 # Plain Zephyr application — no sysbuild, no MCUboot (PLAN.md §1, §2.2).

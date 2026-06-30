@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2026 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: TBD  (license decision tracked by NPE-1777)
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 /*
