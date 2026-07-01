@@ -43,13 +43,14 @@ Secrets are read from the environment or an untracked `e2e.env` — copy
 `e2e.env.example`:
 
 ```sh
-cp quickstart-bluetooth/test/serial/e2e.env.example quickstart-bluetooth/test/serial/e2e.env
-# edit e2e.env with your API key/token, org slug, and the project(s) to test
+cp quickstart-bluetooth/.env.example quickstart-bluetooth/.env
+# edit .env with your API token, org slug, and the project(s) to test
 
 cd quickstart-bluetooth/test/gateway && npm install && cd -
-… python3 quickstart-bluetooth/test/serial/test_project_switch_e2e.py \
-      --env-file quickstart-bluetooth/test/serial/e2e.env
+# the test loads quickstart-bluetooth/.env by default
+… python3 quickstart-bluetooth/test/serial/test_project_switch_e2e.py
 ```
 
-`e2e.env` is gitignored. Configure at least `MEMFAULT_PROJECT_B_*` (the project
-to switch to); add `MEMFAULT_PROJECT_A_*` to also test a baseline project first.
+The repo-root `.env` is gitignored. Configure at least `MEMFAULT_PROJECT_B_*`
+(the project to switch to); add `MEMFAULT_PROJECT_A_*` to also test a baseline
+project first.

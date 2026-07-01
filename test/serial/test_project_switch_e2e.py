@@ -18,15 +18,15 @@
 # Data landing in project B (and not just A) after the switch proves the runtime
 # key override works end to end.
 #
-# Secrets are read from the environment (or an untracked --env-file), never
-# committed. Run via the NCS toolchain Python (for pyserial); Node must be on
-# PATH for the gateway subprocess:
+# Secrets are read from the repo-root .env (or --env-file), never committed.
+# Run via the NCS toolchain Python (for pyserial); Node must be on PATH for the
+# gateway subprocess:
 #
 #   nrfutil toolchain-manager launch --ncs-version v3.3.1 --chdir <workspace> -- \
 #       python3 quickstart-bluetooth/test/serial/test_project_switch_e2e.py \
-#       --env-file quickstart-bluetooth/test/serial/e2e.env
+#       --env-file quickstart-bluetooth/.env
 #
-# Required environment (see e2e.env.example):
+# Required environment (see .env.example):
 #   MEMFAULT_ORG_TOKEN                       (Organization Auth Token; Bearer) — or —
 #   MEMFAULT_API_EMAIL + MEMFAULT_API_KEY    (User API key; HTTP Basic)
 #   MEMFAULT_ORG_SLUG
@@ -165,8 +165,10 @@ def test_project(org, name, slug, project_key, serial_override):
 
 
 def main():
+    # Default to the repo-root .env (two levels up from test/serial/).
+    default_env = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
     ap = argparse.ArgumentParser()
-    ap.add_argument("--env-file")
+    ap.add_argument("--env-file", default=default_env)
     ap.add_argument("--port", default=PORT)
     args = ap.parse_args()
     load_env_file(args.env_file)
