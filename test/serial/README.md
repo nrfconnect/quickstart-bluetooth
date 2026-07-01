@@ -37,8 +37,10 @@ that project in Memfault: for each configured project it writes the key,
 reboots, runs the BLE gateway (`../gateway`) with `--upload`, then polls the
 Memfault REST API until the device's `last_seen` advances.
 
-Needs Node on PATH (for the gateway) and Memfault API credentials. Secrets are
-read from the environment or an untracked `e2e.env` — copy `e2e.env.example`:
+Needs Node on PATH (for the gateway) and a Memfault API credential — an
+Organization Auth Token (Bearer, preferred) or a User API key (HTTP Basic).
+Secrets are read from the environment or an untracked `e2e.env` — copy
+`e2e.env.example`:
 
 ```sh
 cp quickstart-bluetooth/test/serial/e2e.env.example quickstart-bluetooth/test/serial/e2e.env

@@ -27,8 +27,8 @@
 #       --env-file quickstart-bluetooth/test/serial/e2e.env
 #
 # Required environment (see e2e.env.example):
-#   MEMFAULT_API_EMAIL + MEMFAULT_API_KEY   (User API key; HTTP Basic)  — or —
-#   MEMFAULT_ORG_TOKEN                       (Organization token; HTTP Basic)
+#   MEMFAULT_ORG_TOKEN                       (Organization Auth Token; Bearer) — or —
+#   MEMFAULT_API_EMAIL + MEMFAULT_API_KEY    (User API key; HTTP Basic)
 #   MEMFAULT_ORG_SLUG
 #   MEMFAULT_PROJECT_B_SLUG + MEMFAULT_PROJECT_B_KEY   (the project to switch TO)
 # Optional:
@@ -72,20 +72,22 @@ def load_env_file(path):
 
 
 def auth_header():
-    """HTTP Basic header for the Memfault management API."""
+    """Authorization header for the Memfault management API.
+
+    An Organization Auth Token uses Bearer auth; a User API Key uses HTTP Basic
+    with the account email as the username.
+    """
+    org_token = os.environ.get("MEMFAULT_ORG_TOKEN")
     email = os.environ.get("MEMFAULT_API_EMAIL")
     key = os.environ.get("MEMFAULT_API_KEY")
-    org_token = os.environ.get("MEMFAULT_ORG_TOKEN")
+    if org_token:
+        return f"Bearer {org_token}"
     if email and key:
-        raw = f"{email}:{key}"
-    elif org_token:
-        raw = f"{org_token}:"
-    else:
-        raise SystemExit(
-            "Missing API credentials: set MEMFAULT_API_EMAIL+MEMFAULT_API_KEY "
-            "or MEMFAULT_ORG_TOKEN"
-        )
-    return "Basic " + base64.b64encode(raw.encode()).decode()
+        return "Basic " + base64.b64encode(f"{email}:{key}".encode()).decode()
+    raise SystemExit(
+        "Missing API credentials: set MEMFAULT_ORG_TOKEN (Bearer) "
+        "or MEMFAULT_API_EMAIL+MEMFAULT_API_KEY (Basic)"
+    )
 
 
 def get_device(org, project, serial):
