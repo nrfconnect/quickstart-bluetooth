@@ -25,6 +25,7 @@
 
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
+#include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/hci.h>
 #include <zephyr/bluetooth/uuid.h>
 
@@ -47,6 +48,15 @@
 
 #define LBS_BUTTON   DK_BTN1_MSK
 #define CRASH_BUTTON DK_BTN2_MSK /* DEMO-ONLY, see button_handler() */
+
+/* App-identity marker: an empty vendor service whose UUID the nRF Toolbox app
+ * discovers over GATT to recognize this firmware and tailor its UX.
+ */
+#define BT_UUID_QSBT_ID_VAL \
+	BT_UUID_128_ENCODE(0xb2007aaa, 0xc203, 0x43a5, 0x8b6f, 0xa7f3d001a1e0)
+#define BT_UUID_QSBT_ID BT_UUID_DECLARE_128(BT_UUID_QSBT_ID_VAL)
+
+BT_GATT_SERVICE_DEFINE(qsbt_id_svc, BT_GATT_PRIMARY_SERVICE(BT_UUID_QSBT_ID));
 
 static bool app_button_state;
 static struct bt_conn *mds_conn;
