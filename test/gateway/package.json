@@ -1,0 +1,14 @@
+{
+  "name": "qsbt-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Phone-free MDS test gateway for the quickstart-bluetooth nRF54L15 DK firmware",
+  "license": "LicenseRef-Nordic-5-Clause",
+  "scripts": {
+    "gateway": "node gateway.js",
+    "discover": "node discover.js"
+  },
+  "dependencies": {
+    "@abandonware/noble": "^1.9.2-26"
+  }
+}
