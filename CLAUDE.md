@@ -71,6 +71,26 @@ merged/signed hex, no DFU zip (OTA is explicitly out of scope).
   demonstrate a coredump. Comment it clearly as demo-only.
 - Keep the LBS LED/button behavior so it remains a recognizable LBS device for the guide.
 
+## Testing (on-hardware)
+
+The tests under `test/` are **on-hardware bench tests**: they drive a connected
+**nRF54L15 DK** over its USB serial console and BLE. There is no pure-host test suite.
+**If no DK is connected, ask the user whether they want to connect an nRF54L15 DK so
+you can verify functionality before running anything.** On macOS a connected DK shows
+up as `/dev/tty.usbmodem*01/03` (VCOM1 = `…03`); no ports means no board.
+
+- `test/gateway/` — a phone-free Node/noble MDS gateway that stands in for the mobile
+  app (connects, secures the link, drains chunks, optionally uploads). Needs Node on
+  PATH; run `npm install` in that dir first. See `test/gateway/README.md`.
+- `test/e2e/` — serial project-key contract tests plus a cloud project-switch e2e (the
+  latter drives the gateway above and confirms the switch via the Memfault REST API).
+  Needs the NCS toolchain Python (for pyserial); the e2e also needs credentials in the
+  gitignored repo-root `.env`. See `test/e2e/README.md`.
+
+Both suites run through the NCS toolchain launcher
+(`nrfutil toolchain-manager launch … -- python3 …`) — the exact invocations, options,
+and credential setup are in the two READMEs above; don't duplicate them here.
+
 ## Versioning
 
 `app/VERSION` (Zephyr/Asset-Tracker-Template format) is the **single source of truth** for
