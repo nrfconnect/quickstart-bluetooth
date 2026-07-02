@@ -126,8 +126,9 @@ jobs:
           if-no-files-found: error
 
       - name: Upload symbols to Memfault
-        # Software type/version are read from the elf, so they match the device.
-        # --check-uploaded skips symbols already uploaded (idempotent re-runs).
+        # Software type/version come from the build config so the symbol file is
+        # linked to the version the device reports. --check-uploaded skips
+        # symbols already uploaded (idempotent re-runs).
         env:
           MEMFAULT_ORG_TOKEN: ${{ secrets.MEMFAULT_ORG_TOKEN }}
           MEMFAULT_ORG_SLUG: ${{ vars.MEMFAULT_ORG_SLUG }}
@@ -139,6 +140,8 @@ jobs:
             --org "$MEMFAULT_ORG_SLUG" \
             --project "${{ inputs.memfault_project }}" \
             upload-mcu-symbols \
+            --software-type "${{ needs.build.outputs.fw_type }}" \
+            --software-version "${{ needs.build.outputs.fw_version }}" \
             --check-uploaded \
             "${{ steps.files.outputs.elf }}"
 

@@ -33,6 +33,13 @@ on:
         type: string
         required: false
         default: quickstart-bluetooth-nrf54l15dk
+    outputs:
+      fw_version:
+        description: Memfault software version reported by the build (CONFIG_MEMFAULT_NCS_FW_VERSION).
+        value: ${{ jobs.build.outputs.fw_version }}
+      fw_type:
+        description: Memfault software type reported by the build (CONFIG_MEMFAULT_NCS_FW_TYPE).
+        value: ${{ jobs.build.outputs.fw_type }}
 
 jobs:
   build:
@@ -42,6 +49,9 @@ jobs:
     defaults:
       run:
         shell: bash
+    outputs:
+      fw_version: ${{ steps.fwver.outputs.fw_version }}
+      fw_type: ${{ steps.fwver.outputs.fw_type }}
     steps:
       - name: Checkout (into the manifest-repo path from west.yml self.path)
         uses: actions/checkout@v4
@@ -70,6 +80,18 @@ jobs:
       - name: Build for nrf54l15dk/nrf54l15/cpuapp
         # --no-sysbuild: plain app image, no MCUboot/sysbuild (PLAN.md §1).
         run: west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild quickstart-bluetooth/app
+
+      - name: Read Memfault software version/type from the build config
+        id: fwver
+        # The exact strings the firmware reports, so Memfault symbol uploads link
+        # to the right software version (no guessing the Zephyr format).
+        run: |
+          CONF=build/zephyr/.config
+          VER=$(sed -nE 's/^CONFIG_MEMFAULT_NCS_FW_VERSION="(.*)"$/\1/p' "$CONF")
+          TYPE=$(sed -nE 's/^CONFIG_MEMFAULT_NCS_FW_TYPE="(.*)"$/\1/p' "$CONF")
+          echo "fw_version=$VER" >> "$GITHUB_OUTPUT"
+          echo "fw_type=$TYPE" >> "$GITHUB_OUTPUT"
+          echo "Memfault software: type=$TYPE version=$VER"
 
       - name: Upload build artifacts (hex + elf for symbolication)
         uses: actions/upload-artifact@v4
