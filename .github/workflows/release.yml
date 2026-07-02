@@ -38,7 +38,7 @@ on:
         required: false
         default: ""
       dry_run:
-        description: "Build + upload symbols, but skip git tag and GitHub release"
+        description: "Dry-run (skip git tag and release)"
         type: boolean
         required: false
         default: false
