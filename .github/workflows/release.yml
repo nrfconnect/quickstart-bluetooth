@@ -37,11 +37,6 @@ on:
         type: string
         required: false
         default: ""
-      memfault_project:
-        description: "Memfault project slug to upload symbols to"
-        type: string
-        required: false
-        default: quickstart-shared-project
       dry_run:
         description: "Build + upload symbols, but skip git tag and GitHub release"
         type: boolean
@@ -138,7 +133,7 @@ jobs:
           memfault \
             --org-token "$MEMFAULT_ORG_TOKEN" \
             --org "$MEMFAULT_ORG_SLUG" \
-            --project "${{ inputs.memfault_project }}" \
+            --project quickstart-shared-project \
             upload-mcu-symbols \
             --software-type "${{ needs.build.outputs.fw_type }}" \
             --software-version "${{ needs.build.outputs.fw_version }}" \
@@ -152,25 +147,35 @@ jobs:
           TARGET_SHA: ${{ inputs.sha != '' && inputs.sha || github.sha }}
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" "$TARGET_SHA" -m "quickstart-bluetooth $TAG"
-          git push origin "$TAG"
+          # Idempotent: leave an existing tag in place so re-running a version
+          # doesn't fail (delete + retag manually to intentionally move it).
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists on origin; leaving it in place."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" "$TARGET_SHA" -m "quickstart-bluetooth $TAG"
+            git push origin "$TAG"
+          fi
 
-      - name: Create GitHub release
+      - name: Create or update GitHub release
         if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.validate.outputs.tag }}
+          ZIP: ${{ steps.zip.outputs.zip }}
         run: |
           set -euo pipefail
-          PRERELEASE=""
           # A tag with a suffix (e.g. v1.2.3-rc1) is a pre-release.
+          PRERELEASE=""
           if [[ "$TAG" == *-* ]]; then PRERELEASE="--prerelease"; fi
-          gh release create "$TAG" "${{ steps.zip.outputs.zip }}" \
-            --title "$TAG" \
-            --generate-notes \
-            $PRERELEASE
+          # Idempotent: create if missing, else re-attach the zip (--clobber) so
+          # re-running an existing version refreshes the asset instead of failing.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" --clobber
+          else
+            gh release create "$TAG" "$ZIP" --title "$TAG" --generate-notes $PRERELEASE
+          fi
 
       - name: Dry-run summary
         if: ${{ inputs.dry_run }}
