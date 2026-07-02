@@ -91,12 +91,16 @@ def auth_header():
 
 
 def get_device(org, project, serial):
-    """GET the device record; return parsed JSON or None if 404."""
+    """GET the device record; return the device object or None if 404.
+
+    The management API wraps single resources as {"data": {...}}.
+    """
     url = f"{API_BASE}/api/v0/organizations/{org}/projects/{project}/devices/{serial}"
     req = urllib.request.Request(url, headers={"Authorization": auth_header()})
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
-            return json.load(resp)
+            body = json.load(resp)
+            return body.get("data", body)
     except urllib.error.HTTPError as e:
         if e.code == 404:
             return None
