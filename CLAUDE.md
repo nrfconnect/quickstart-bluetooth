@@ -69,7 +69,11 @@ merged/signed hex, no DFU zip (OTA is explicitly out of scope).
   immediately instead of waiting for the periodic timer.
 - **Crash button (demo-only):** map an LBS button to a forced fault (e.g. `k_oops`) to
   demonstrate a coredump. Comment it clearly as demo-only.
-- Keep the LBS LED/button behavior so it remains a recognizable LBS device for the guide.
+- Keep the LBS LED/button behavior so it remains a recognizable LBS device for the guide —
+  the GATT LBS service/characteristics stay standard regardless of what's advertised.
+- **Scan-time identity:** the scan response advertises the custom app-identity UUID
+  (`BT_UUID_QSBT_ID_VAL`, `b2007aaa-...`), not the LBS UUID, so the mobile app can tag this
+  device as "quick start" in its scan list before connecting.
 
 ## Testing (on-hardware)
 
