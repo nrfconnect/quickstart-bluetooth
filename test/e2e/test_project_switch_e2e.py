@@ -23,7 +23,7 @@
 # gateway subprocess:
 #
 #   nrfutil toolchain-manager launch --ncs-version v3.3.1 --chdir <workspace> -- \
-#       python3 quickstart-bluetooth/test/serial/test_project_switch_e2e.py \
+#       python3 quickstart-bluetooth/test/e2e/test_project_switch_e2e.py \
 #       --env-file quickstart-bluetooth/.env
 #
 # Required environment (see .env.example):
@@ -169,7 +169,7 @@ def test_project(org, name, slug, project_key, serial_override):
 
 
 def main():
-    # Default to the repo-root .env (two levels up from test/serial/).
+    # Default to the repo-root .env (two levels up from test/e2e/).
     default_env = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
     ap = argparse.ArgumentParser()
     ap.add_argument("--env-file", default=default_env)
