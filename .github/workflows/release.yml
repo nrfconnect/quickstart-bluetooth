@@ -142,6 +142,7 @@ jobs:
         # so it works even when the target commit's workflows differ from main.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }} # gh has no checkout to infer the repo from
           TAG: ${{ needs.validate.outputs.tag }}
           ZIP: ${{ steps.zip.outputs.zip }}
           TARGET_SHA: ${{ inputs.sha != '' && inputs.sha || github.sha }}
