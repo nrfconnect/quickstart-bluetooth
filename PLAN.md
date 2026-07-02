@@ -226,7 +226,13 @@ pieces proven in the `peripheral_mds` work:
   has buttons; map one to a divide-by-zero or `k_oops`) so the guide can
   demonstrate a coredump. Clearly comment it as demo-only.
 - Keep the LBS LED/button behaviour so the app is still a recognizable LBS
-  device for the Quick Start guide.
+  device for the Quick Start guide — the GATT LBS service/characteristics stay
+  standard regardless of what's advertised.
+- **App-identity service**: register an empty vendor GATT service
+  (`b2007aaa-c203-43a5-8b6f-a7f3d001a1e0`) purely so the mobile app can mark
+  this firmware. Its UUID is advertised in the scan response (replacing the
+  LBS UUID there) so the mobile app can tag the device as "quick start" in
+  its scan list before connecting.
 - Decide whether heartbeat-on-connect/crash glue lives inline in `main.c` or a
   small `memfault_handlers.c` (cleaner; recommended).
 

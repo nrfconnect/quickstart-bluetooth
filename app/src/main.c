@@ -62,8 +62,10 @@ static bool app_button_state;
 static struct bt_conn *mds_conn;
 static struct k_work adv_work;
 
-/* Advertise as a recognizable LBS device (name + LBS UUID). MDS is discovered
- * over GATT after connecting; it does not need to be advertised.
+/* Advertise the app-identity UUID (not the LBS UUID) so the mobile app can
+ * recognize this as a quickstart device from the scan list, before
+ * connecting. MDS is discovered over GATT after connecting; it does not need
+ * to be advertised.
  */
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
@@ -71,7 +73,7 @@ static const struct bt_data ad[] = {
 };
 
 static const struct bt_data sd[] = {
-	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_LBS_VAL),
+	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_QSBT_ID_VAL),
 };
 
 static void adv_work_handler(struct k_work *work)
