@@ -9,11 +9,15 @@
 #
 # For each configured project (A, then B):
 #   1. Write its project key over the serial shell and `kernel reboot cold`.
-#   2. Run the BLE gateway (test/gateway) with --upload so the device drains a
-#      fresh heartbeat and the gateway forwards the chunks. The gateway uploads
-#      using the key the device serves over MDS, i.e. the just-switched key.
-#   3. Poll the Memfault REST API for the device in that project and assert its
-#      `last_seen` advanced past the moment we started the upload.
+#   2. Run the BLE gateway (--upload) so the device drains a fresh heartbeat; poll
+#      the Memfault REST API until the device's `last_seen` advances, proving the
+#      switch re-targeted uploads to this project. (A heartbeat drain reliably
+#      bumps last_seen; a coredump-carrying drain does not, so verification uses a
+#      clean heartbeat.)
+#   3. Force a coredump (`mflt test hardfault`) with this project's key active and
+#      drain it, so a real crash — not just reboot/heartbeat events — is captured
+#      in this project. Draining also clears the coredump so the next project's
+#      heartbeat check stays clean.
 #
 # Data landing in project B (and not just A) after the switch proves the runtime
 # key override works end to end.
@@ -118,6 +122,18 @@ def switch_key_and_reboot(project_key):
     time.sleep(2.0)
 
 
+def crash_and_reboot():
+    """Force a coredump with the current key active, then wait for the reboot.
+
+    `mflt test hardfault` captures a RAM-backed coredump and warm-resets; the key
+    persists in ZMS, so the device comes back up ready to serve the coredump to
+    the gateway for upload into the current project.
+    """
+    print("    crashing device (mflt test hardfault) for a coredump …")
+    serial_session(PORT, ["mflt test hardfault"], window=2.0)
+    time.sleep(6.0)
+
+
 def run_gateway_upload():
     """Run the gateway with --upload; return the device serial it read over MDS."""
     print(f"    running gateway --upload for {UPLOAD_SECONDS}s …")
@@ -137,7 +153,7 @@ def run_gateway_upload():
     return serial
 
 
-def poll_last_seen(org, project, serial, since, timeout=120):
+def poll_last_seen(org, project, serial, since, timeout=150):
     """Return True once the device's last_seen advances past `since`."""
     deadline = time.time() + timeout
     while time.time() < deadline:
@@ -155,6 +171,8 @@ def test_project(org, name, slug, project_key):
     print(f"\n=== project {name}: {slug} ===")
     since = datetime.now(timezone.utc)
     switch_key_and_reboot(project_key)
+    # Verify the switch with a clean heartbeat drain — last_seen advances
+    # reliably (a coredump-carrying drain does not).
     serial = run_gateway_upload()
     if not serial:
         print(f"[FAIL] switch to {name} ({slug}): could not determine device serial")
@@ -164,6 +182,12 @@ def test_project(org, name, slug, project_key):
     detail = f"device {serial} reported into project after switch" if ok else \
         f"device {serial} did NOT report into project within timeout"
     print(f"[{mark}] switch to {name} ({slug}): {detail}")
+
+    # Now capture a real crash in this project: coredump uploads under the
+    # just-verified key. Drained here so it clears before the next iteration.
+    crash_and_reboot()
+    print("    draining coredump …")
+    run_gateway_upload()
     return ok
 
 

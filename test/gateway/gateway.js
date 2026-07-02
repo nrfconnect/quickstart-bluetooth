@@ -50,6 +50,13 @@ let uploaded = 0;
 let dataUri = null;
 let authHeader = null;
 
+// Memfault reassembles chunks in the order they are POSTed, so uploads must be
+// serialized. Firing fetches concurrently lets them arrive out of order and
+// triggers "chunk missing" / CRC reassembly errors on large (coredump) streams.
+const uploadQueue = [];
+let draining = false;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 async function uploadChunk(data) {
   // authHeader looks like "Memfault-Project-Key:<key>"
   const idx = authHeader.indexOf(":");
@@ -63,6 +70,29 @@ async function uploadChunk(data) {
   uploaded++;
   log(`  ↑ uploaded chunk ${uploaded} -> HTTP ${res.status}`);
   if (!res.ok) log("    body:", (await res.text()).slice(0, 200));
+}
+
+// Upload queued chunks one at a time, in arrival order, so Memfault receives
+// them in sequence. Retries transient network failures a couple of times.
+async function drainUploadQueue() {
+  if (draining) return;
+  draining = true;
+  while (uploadQueue.length) {
+    const data = uploadQueue.shift();
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await uploadChunk(data);
+        break;
+      } catch (e) {
+        if (attempt >= 3) {
+          log("  upload error (giving up):", e.message);
+          break;
+        }
+        await sleep(200);
+      }
+    }
+  }
+  draining = false;
 }
 
 function handleChunk(data) {
@@ -79,7 +109,10 @@ function handleChunk(data) {
     log(`  ⚠ SEQUENCE GAP: expected ${expectedSeq} got ${sn}`);
   }
   expectedSeq = (sn + 1) % 32;
-  if (UPLOAD) uploadChunk(payload).catch((e) => log("  upload error:", e.message));
+  if (UPLOAD) {
+    uploadQueue.push(payload);
+    drainUploadQueue();
+  }
 }
 
 async function run(peripheral) {
@@ -113,13 +146,19 @@ async function run(peripheral) {
   log(`Streaming for ${SECONDS}s. Upload=${UPLOAD ? "ON" : "OFF (dry run)"}`);
 
   setTimeout(async () => {
+    try {
+      await exportChar.writeAsync(Buffer.from([0x00]), false); // stop streaming
+    } catch (e) {}
+    // Finish uploading everything received (in order) before disconnecting.
+    while (UPLOAD && (uploadQueue.length || draining)) {
+      await sleep(100);
+    }
     log(
       `--- done: ${chunksReceived} chunks, ${bytesReceived} bytes${
         UPLOAD ? `, ${uploaded} uploaded` : ""
       } ---`
     );
     try {
-      await exportChar.writeAsync(Buffer.from([0x00]), false); // stop streaming
       await peripheral.disconnectAsync();
     } catch (e) {}
     process.exit(0);
