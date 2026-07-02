@@ -33,7 +33,6 @@
 #   MEMFAULT_PROJECT_B_SLUG + MEMFAULT_PROJECT_B_KEY   (the project to switch TO)
 # Optional:
 #   MEMFAULT_PROJECT_A_SLUG + MEMFAULT_PROJECT_A_KEY   (baseline, tested first)
-#   MEMFAULT_DEVICE_SERIAL   (default: auto-read from the device over serial)
 #   MEMFAULT_API_BASE        (default: https://api.memfault.com)
 #   QSBT_PORT, QSBT_GATEWAY_DIR, QSBT_UPLOAD_SECONDS
 
@@ -152,11 +151,11 @@ def poll_last_seen(org, project, serial, since, timeout=120):
     return False
 
 
-def test_project(org, name, slug, project_key, serial_override):
+def test_project(org, name, slug, project_key):
     print(f"\n=== project {name}: {slug} ===")
     since = datetime.now(timezone.utc)
     switch_key_and_reboot(project_key)
-    serial = run_gateway_upload() or serial_override
+    serial = run_gateway_upload()
     if not serial:
         print(f"[FAIL] switch to {name} ({slug}): could not determine device serial")
         return False
@@ -191,12 +190,9 @@ def main():
     if not projects:
         raise SystemExit("Configure at least MEMFAULT_PROJECT_B_SLUG + _KEY")
 
-    serial_override = os.environ.get("MEMFAULT_DEVICE_SERIAL")
     print(f"Org: {org}   API: {API_BASE}")
-    if serial_override:
-        print(f"Device serial (override): {serial_override}")
 
-    results = [test_project(org, n, s, k, serial_override) for (n, s, k) in projects]
+    results = [test_project(org, n, s, k) for (n, s, k) in projects]
 
     # leave the device clean
     serial_session(args.port, [f"settings delete {KEY}"])
