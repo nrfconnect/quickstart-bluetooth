@@ -10,5 +10,8 @@
   },
   "dependencies": {
     "@abandonware/noble": "^1.9.2-26"
+  },
+  "overrides": {
+    "tar": "^7.5.19"
   }
 }
