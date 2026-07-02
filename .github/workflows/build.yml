@@ -1,17 +1,8 @@
-# Build the quickstart-bluetooth application against the pinned sdk-nrf SHA so
-# regressions are caught on every PR (PLAN.md §7).
-#
-# This is a T2 manifest app: CI bootstraps a west workspace around this repo and
-# builds the single supported board. The build runs inside the NCS toolchain
-# container, which ships the Zephyr SDK, host tools and west.
-#
-# TOOLCHAIN PIN: `container.image` must match the NCS base of the sdk-nrf
-# revision pinned in west.yml. The temporary fork (Phase 1) is based on NCS
-# v3.3.0; we pin the v3.3.1 toolchain image (patch-compatible host tools / Zephyr
-# SDK / west, and the tag this app was verified green against). NOTE: the public
-# ghcr package is tagged with semantic versions (v3.3.0, v3.3.1, ...), NOT the
-# internal `-branch` suffix. Bump this tag together with the manifest SHA (the
-# SHA-bump / fork-swap policy in west.yml).
+# PR/push CI: build the quickstart-bluetooth application against the pinned
+# sdk-nrf SHA so regressions are caught on every PR (PLAN.md §7). This is a thin
+# caller of the reusable build-app.yml — with no `version` input it builds the
+# committed app/VERSION as-is. The build steps and toolchain pin live in
+# build-app.yml so CI and release.yml can never drift apart.
 
 name: Build
 
@@ -27,41 +18,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
-    container:
-      image: ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.3.1
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Checkout (into the manifest-repo path from west.yml self.path)
-        uses: actions/checkout@v4
-        with:
-          path: quickstart-bluetooth
-
-      - name: Initialise west workspace from the local manifest
-        run: west init -l quickstart-bluetooth
-
-      - name: West update (shallow, against the pinned sdk-nrf SHA)
-        run: west update --narrow -o=--depth=1
-
-      - name: West zephyr-export
-        run: west zephyr-export
-
-      - name: Build for nrf54l15dk/nrf54l15/cpuapp
-        # --no-sysbuild: plain app image, no MCUboot/sysbuild (PLAN.md §1).
-        run: west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild quickstart-bluetooth/app
-
-      - name: Upload build artifacts (hex + elf for symbolication)
-        uses: actions/upload-artifact@v4
-        with:
-          name: quickstart-bluetooth-nrf54l15dk
-          path: |
-            build/zephyr/zephyr.hex
-            build/zephyr/zephyr.elf
-          if-no-files-found: error
+    uses: ./.github/workflows/build-app.yml
 
 # Follow-ups (out of scope for this workflow, tracked separately):
 #   - twister build-only smoke test once a testcase/sample.yaml exists.
-#   - auto-upload zephyr.elf symbols to Memfault on tagged builds (needs a
-#     Memfault org token secret).

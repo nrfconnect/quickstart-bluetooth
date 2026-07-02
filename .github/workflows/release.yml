@@ -1,0 +1,176 @@
+# Release pipeline for quickstart-bluetooth (PLAN.md §7).
+#
+# Manually dispatched. Given a release version string it:
+#   1. validates the version format and derives the git tag + Memfault software
+#      version (scripts/app_version.py);
+#   2. builds the firmware with app/VERSION set to that version (build-app.yml),
+#      so the device reports the release version to Memfault;
+#   3. zips zephyr.hex + zephyr.elf;
+#   4. uploads zephyr.elf as symbols to the Memfault "quickstart-shared-project"
+#      (registers the software version for symbolication);
+#   5. tags the target commit and creates a GitHub release with the zip attached.
+#
+# The version input is the single knob — do NOT hardcode versions elsewhere; the
+# committed app/VERSION stays at 0.0.0-dev and is overwritten at build time.
+#
+# dry_run performs steps 1-4 (validate, build, zip, Memfault upload) but SKIPS
+# the git tag and GitHub release, so you can prove VERSION generation and build
+# output before cutting a real release. The built zip is uploaded as a workflow
+# artifact in every run for inspection.
+#
+# Required repository configuration:
+#   secret MEMFAULT_ORG_TOKEN  Organization Auth Token (Bearer) with upload rights
+#   var    MEMFAULT_ORG_SLUG   Memfault organization slug (from the dashboard URL)
+# (GITHUB_TOKEN is provided automatically; contents:write lets it tag + release.)
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, e.g. v1.2.3 or v1.2.3-rc1"
+        type: string
+        required: true
+      sha:
+        description: "Commit SHA to tag/release (default: latest commit on this ref)"
+        type: string
+        required: false
+        default: ""
+      memfault_project:
+        description: "Memfault project slug to upload symbols to"
+        type: string
+        required: false
+        default: quickstart-shared-project
+      dry_run:
+        description: "Build + upload symbols, but skip git tag and GitHub release"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write # tag push + release creation
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.parse.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate version and derive tag
+        id: parse
+        # scripts/app_version.py exits non-zero on a malformed version string,
+        # failing the whole run before anything is built or published.
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          python3 scripts/app_version.py "$VERSION" >/dev/null
+          TAG=$(python3 scripts/app_version.py "$VERSION" --mode tag)
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $TAG"
+
+  build:
+    needs: validate
+    uses: ./.github/workflows/build-app.yml
+    with:
+      version: ${{ inputs.version }}
+
+  publish:
+    needs: [validate, build]
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout (need scripts + full history to tag any reachable SHA)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python (isolated interpreter for memfault-cli)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download build artifacts (hex + elf)
+        uses: actions/download-artifact@v4
+        with:
+          name: quickstart-bluetooth-nrf54l15dk
+          path: artifacts
+
+      - name: Locate build outputs
+        id: files
+        run: |
+          set -euo pipefail
+          HEX=$(find artifacts -name zephyr.hex | head -n1)
+          ELF=$(find artifacts -name zephyr.elf | head -n1)
+          test -n "$HEX" && test -n "$ELF"
+          echo "hex=$HEX" >> "$GITHUB_OUTPUT"
+          echo "elf=$ELF" >> "$GITHUB_OUTPUT"
+
+      - name: Package release zip
+        id: zip
+        run: |
+          set -euo pipefail
+          ZIP="quickstart-bluetooth-${{ needs.validate.outputs.tag }}.zip"
+          zip -j "$ZIP" "${{ steps.files.outputs.hex }}" "${{ steps.files.outputs.elf }}"
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+
+      - name: Upload zip as workflow artifact (always, for inspection)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.zip.outputs.zip }}
+          path: ${{ steps.zip.outputs.zip }}
+          if-no-files-found: error
+
+      - name: Upload symbols to Memfault
+        # Software type/version are read from the elf, so they match the device.
+        # --check-uploaded skips symbols already uploaded (idempotent re-runs).
+        env:
+          MEMFAULT_ORG_TOKEN: ${{ secrets.MEMFAULT_ORG_TOKEN }}
+          MEMFAULT_ORG_SLUG: ${{ vars.MEMFAULT_ORG_SLUG }}
+        run: |
+          set -euo pipefail
+          pip install --quiet memfault-cli
+          memfault \
+            --org-token "$MEMFAULT_ORG_TOKEN" \
+            --org "$MEMFAULT_ORG_SLUG" \
+            --project "${{ inputs.memfault_project }}" \
+            upload-mcu-symbols \
+            --check-uploaded \
+            "${{ steps.files.outputs.elf }}"
+
+      - name: Tag the target commit
+        if: ${{ !inputs.dry_run }}
+        env:
+          TAG: ${{ needs.validate.outputs.tag }}
+          TARGET_SHA: ${{ inputs.sha != '' && inputs.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" "$TARGET_SHA" -m "quickstart-bluetooth $TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.validate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          PRERELEASE=""
+          # A tag with a suffix (e.g. v1.2.3-rc1) is a pre-release.
+          if [[ "$TAG" == *-* ]]; then PRERELEASE="--prerelease"; fi
+          gh release create "$TAG" "${{ steps.zip.outputs.zip }}" \
+            --title "$TAG" \
+            --generate-notes \
+            $PRERELEASE
+
+      - name: Dry-run summary
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "DRY RUN: skipped git tag and GitHub release for ${{ needs.validate.outputs.tag }}."
+          echo "Built + zipped ${{ steps.zip.outputs.zip }} and uploaded symbols to Memfault."

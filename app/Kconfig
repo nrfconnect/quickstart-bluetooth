@@ -5,4 +5,9 @@
 # App-specific Kconfig. Intentionally thin — almost all configuration lives in
 # prj.conf (PLAN.md §2.2, §4.3). Add app-local options here only if they emerge.
 
+# Report $(APPVERSION) (e.g. 1.2.3 / 1.2.3-rc1) to Memfault, not the NCS default
+# $(APP_VERSION_TWEAK_STRING) (1.2.3+0). Must be a Kconfig default to expand.
+config MEMFAULT_NCS_FW_VERSION
+	default "$(APPVERSION)"
+
 source "Kconfig.zephyr"

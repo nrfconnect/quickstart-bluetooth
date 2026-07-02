@@ -123,10 +123,18 @@ Memfault shows *"Unknown location"*.
 Upload it via the Memfault web app (Software → Symbol Files) or the Memfault CLI.
 Re-upload on every firmware change; the Build ID changes each build.
 
-## Firmware version
+## Releasing
 
-`app/VERSION` is the single source of truth for the firmware version. The
-Memfault software version is derived from it (e.g. `1.0.0+0`) and so is the BLE
-Device Information Service firmware-revision string. Bump a release by editing
-`app/VERSION` only — never hardcode the version. See `app/VERSION` for the bump
-policy.
+Releases are cut by the **Release** GitHub Actions workflow
+(`.github/workflows/release.yml`), started manually from the Actions tab. Given a
+version, it builds the firmware at that version, uploads symbols to Memfault, tags
+the commit, and publishes a GitHub release with `zephyr.hex` + `zephyr.elf`
+attached.
+
+Inputs:
+
+- **version** (required) — e.g. `v1.2.3`, or `v1.2.3-rc1` for a pre-release. The
+  leading `v` is optional; the tag is always `vX.Y.Z` and the firmware version is
+  `X.Y.Z`. An invalid format is rejected.
+- **sha** (optional) — commit to tag/release; defaults to the latest commit.
+- **dry_run** — build and upload symbols only; skip the git tag and GitHub release.

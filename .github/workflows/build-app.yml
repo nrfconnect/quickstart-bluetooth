@@ -1,0 +1,81 @@
+# Reusable build of the quickstart-bluetooth application against the pinned
+# sdk-nrf SHA. Called by build.yml (PR/push CI) and release.yml (tagged
+# releases) so both share ONE definition of the build steps and toolchain pin.
+#
+# This is a T2 manifest app: CI bootstraps a west workspace around this repo and
+# builds the single supported board. The build runs inside the NCS toolchain
+# container, which ships the Zephyr SDK, host tools and west.
+#
+# TOOLCHAIN PIN: `container.image` must match the NCS base of the sdk-nrf
+# revision pinned in west.yml. The temporary fork (Phase 1) is based on NCS
+# v3.3.0; we pin the v3.3.1 toolchain image (patch-compatible host tools / Zephyr
+# SDK / west, and the tag this app was verified green against). NOTE: the public
+# ghcr package is tagged with semantic versions (v3.3.0, v3.3.1, ...), NOT the
+# internal `-branch` suffix. Bump this tag together with the manifest SHA (the
+# SHA-bump / fork-swap policy in west.yml).
+
+name: Build app
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: >-
+          Release version (vX.Y.Z[-suffix]). When set, app/VERSION is
+          regenerated from it before the build so the firmware reports the
+          release version to Memfault. When empty, the committed app/VERSION is
+          built as-is (PR/push CI).
+        type: string
+        required: false
+        default: ""
+      artifact-name:
+        description: Name of the uploaded hex+elf artifact.
+        type: string
+        required: false
+        default: quickstart-bluetooth-nrf54l15dk
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.3.1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout (into the manifest-repo path from west.yml self.path)
+        uses: actions/checkout@v4
+        with:
+          path: quickstart-bluetooth
+
+      - name: Set release version in app/VERSION
+        if: inputs.version != ''
+        # app/VERSION is the single source of truth (PLAN.md §4.5); for releases
+        # it is regenerated from the release input rather than committed.
+        run: |
+          python3 quickstart-bluetooth/scripts/app_version.py "${{ inputs.version }}" \
+            > quickstart-bluetooth/app/VERSION
+          echo "Building app/VERSION:"
+          cat quickstart-bluetooth/app/VERSION
+
+      - name: Initialise west workspace from the local manifest
+        run: west init -l quickstart-bluetooth
+
+      - name: West update (shallow, against the pinned sdk-nrf SHA)
+        run: west update --narrow -o=--depth=1
+
+      - name: West zephyr-export
+        run: west zephyr-export
+
+      - name: Build for nrf54l15dk/nrf54l15/cpuapp
+        # --no-sysbuild: plain app image, no MCUboot/sysbuild (PLAN.md §1).
+        run: west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild quickstart-bluetooth/app
+
+      - name: Upload build artifacts (hex + elf for symbolication)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: |
+            build/zephyr/zephyr.hex
+            build/zephyr/zephyr.elf
+          if-no-files-found: error
