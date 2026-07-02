@@ -57,7 +57,7 @@ jobs:
     outputs:
       tag: ${{ steps.parse.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Validate version and derive tag
         id: parse
@@ -85,17 +85,17 @@ jobs:
         shell: bash
     steps:
       - name: Checkout (need scripts + full history to tag any reachable SHA)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Python (isolated interpreter for memfault-cli)
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
       - name: Download build artifacts (hex + elf)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: quickstart-bluetooth-nrf54l15dk
           path: artifacts
@@ -119,7 +119,7 @@ jobs:
           echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
 
       - name: Upload zip as workflow artifact (always, for inspection)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.zip.outputs.zip }}
           path: ${{ steps.zip.outputs.zip }}

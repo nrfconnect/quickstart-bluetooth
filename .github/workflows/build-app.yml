@@ -54,7 +54,7 @@ jobs:
       fw_type: ${{ steps.fwver.outputs.fw_type }}
     steps:
       - name: Checkout (into the manifest-repo path from west.yml self.path)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: quickstart-bluetooth
 
@@ -94,7 +94,7 @@ jobs:
           echo "Memfault software: type=$TYPE version=$VER"
 
       - name: Upload build artifacts (hex + elf for symbolication)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact-name }}
           path: |
