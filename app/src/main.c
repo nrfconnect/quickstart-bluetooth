@@ -56,7 +56,12 @@
 	BT_UUID_128_ENCODE(0xb2007aaa, 0xc203, 0x43a5, 0x8b6f, 0xa7f3d001a1e0)
 #define BT_UUID_QSBT_ID BT_UUID_DECLARE_128(BT_UUID_QSBT_ID_VAL)
 
-BT_GATT_SERVICE_DEFINE(qsbt_id_svc, BT_GATT_PRIMARY_SERVICE(BT_UUID_QSBT_ID));
+/* Named to sort alphabetically before lbs_svc/mds_svc: Zephyr's
+ * BT_GATT_SERVICE_DEFINE places services into a linker section sorted by name
+ * (SORT_BY_NAME), so this controls GATT discovery order, not declaration
+ * order. Mobile app requests: custom, lbs, MDS.
+ */
+BT_GATT_SERVICE_DEFINE(custom_id_svc, BT_GATT_PRIMARY_SERVICE(BT_UUID_QSBT_ID));
 
 static bool app_button_state;
 static struct bt_conn *mds_conn;
