@@ -59,6 +59,17 @@ jobs:
       - name: West zephyr-export
         run: west zephyr-export
 
+      - name: Install the Zephyr SDK required by the pinned Zephyr revision
+        # The toolchain container ships an older Zephyr SDK; the pinned revision
+        # may require a newer one. Install the version from zephyr/SDK_VERSION
+        # (auto-detected). arm-zephyr-eabi is the only toolchain this app needs.
+        # xz-utils provides the `xz` binary the installer uses to unpack the SDK.
+        # -H skips host tools (the container already provides them; installing them
+        # fails here and they are not needed).
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends xz-utils
+          west sdk install -t arm-zephyr-eabi -H
+
       - name: Build for nrf54l15dk/nrf54l15/cpuapp
         # --no-sysbuild: plain app image, no MCUboot/sysbuild.
         run: west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild project/app
