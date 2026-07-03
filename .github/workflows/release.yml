@@ -1,4 +1,4 @@
-# Release pipeline for quickstart-bluetooth (PLAN.md §7).
+# Release pipeline for quickstart-bluetooth.
 #
 # Manually dispatched. Given a release version string it:
 #   1. validates the version format and derives the git tag + Memfault software

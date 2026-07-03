@@ -1,20 +1,3 @@
-# Single source of truth for the firmware version (Zephyr/ATT format).
-#
-# Zephyr reads this file and generates app_version.h plus the Kconfig env vars
-# $(APP_VERSION_STRING) ("1.0.0"), $(APP_VERSION_TWEAK_STRING) ("1.0.0+0"), etc.
-# The NCS Memfault integration defaults the reported software version to
-# $(APP_VERSION_TWEAK_STRING) (see CONFIG_MEMFAULT_NCS_FW_VERSION_STATIC in
-# prj.conf), and the DIS firmware-revision string is templated from it too.
-#
-# Release bump policy (PLAN.md §4.5, §7):
-#   - Bump a release by editing ONLY this file. Do not hardcode the version
-#     anywhere else.
-#   - Leave EXTRAVERSION empty for tagged/release builds so Memfault release and
-#     issue grouping stays stable (semantic versions). Use it (e.g. "dev") only
-#     for throwaway local builds.
-#   - The GNU Build ID used for symbolication is independent of this version and
-#     changes every build; always upload zephyr.elf to Memfault (README).
-
 VERSION_MAJOR = 0
 VERSION_MINOR = 0
 PATCHLEVEL = 0

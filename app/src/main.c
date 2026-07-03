@@ -10,7 +10,7 @@
  * The peripheral_lbs button/LED base with Memfault observability over the
  * Memfault Diagnostic Service (MDS). The device serves Memfault chunks to a
  * secured gateway connection; the gateway performs the HTTPS upload. The device
- * never does on-device HTTP/TLS. See PLAN.md §4.2.
+ * never does on-device HTTP/TLS.
  *
  * Controls (nRF54L15 DK):
  *   Button 1  LBS button characteristic (standard LBS — central sees the press)
@@ -193,7 +193,7 @@ static struct bt_conn_auth_info_cb conn_auth_info_callbacks = {
 	.pairing_failed = pairing_failed,
 };
 
-/* Gate MDS access to the secured gateway connection only (PLAN.md §4.2). */
+/* Gate MDS access to the secured gateway connection only. */
 static bool mds_access_enable(struct bt_conn *conn)
 {
 	return (mds_conn && conn == mds_conn);

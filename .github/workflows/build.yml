@@ -1,5 +1,5 @@
 # PR/push CI: build the quickstart-bluetooth application against the pinned
-# sdk-nrf SHA so regressions are caught on every PR (PLAN.md §7). This is a thin
+# sdk-nrf SHA so regressions are caught on every PR. This is a thin
 # caller of the reusable build-app.yml — with no `version` input it builds the
 # committed app/VERSION as-is. The build steps and toolchain pin live in
 # build-app.yml so CI and release.yml can never drift apart.

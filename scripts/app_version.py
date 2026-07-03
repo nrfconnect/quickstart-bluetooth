@@ -3,8 +3,8 @@
 
 A release is identified by ``vMAJOR.MINOR.PATCH`` with an optional ``-SUFFIX``
 (e.g. ``v1.2.3`` or ``v1.2.3-rc1``); the leading ``v`` is optional. Validates
-that string and emits the fields to overwrite ``app/VERSION`` (the single source
-of truth, PLAN.md §4.5) at build time in the release workflow.
+that string and emits the fields to overwrite ``app/VERSION`` at build time in
+the release workflow.
 
 Modes:
   version-file  (default) the 5 VERSION lines, ready to write to app/VERSION

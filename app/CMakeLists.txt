@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 # quickstart-bluetooth application (peripheral_lbs + Memfault over MDS).
-# Plain Zephyr application — no sysbuild, no MCUboot (PLAN.md §1, §2.2).
+# Plain Zephyr application — no sysbuild, no MCUboot.
 
 cmake_minimum_required(VERSION 3.20.0)
 

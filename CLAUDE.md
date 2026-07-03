@@ -2,13 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Current state
-
-This repo is **pre-implementation**: it contains only `PLAN.md` (the design basis) with
-no source code and no commits yet. `PLAN.md` is the authoritative spec for what gets
-built — read it before making changes. When implementing, follow the layout, config, and
-upstream/out-of-tree split it defines, and keep it updated as decisions change.
-
 ## What this is
 
 `quickstart-bluetooth` is a **production out-of-tree nRF Connect SDK (NCS) application**
@@ -44,8 +37,7 @@ merged/signed hex, no DFU zip (OTA is explicitly out of scope).
 - **Upstream-first dependency model.** The reusable Memfault glue is upstreamed into
   `sdk-nrf` (and the vendored Memfault firmware SDK), *not* carried as an out-of-tree
   fork. `west.yml` pins a **specific `sdk-nrf` main SHA** (not the `main` branch) that
-  already contains that work. Bumping the SHA is a deliberate, CI-gated action. See
-  PLAN.md §3 and §9 for exactly what lives upstream vs. in this repo.
+  already contains that work. Bumping the SHA is a deliberate, CI-gated action.
 - **Plain Zephyr app, not a Zephyr module.** Default to a plain application under `app/`
   with no `zephyr/module.yml`. Only add module machinery if app-local shared code emerges.
 - **Runtime project key via settings shell.** The Memfault project key is provisioned over
@@ -60,7 +52,7 @@ merged/signed hex, no DFU zip (OTA is explicitly out of scope).
   bootloader or flash partition. Re-measure size with the `mflt coredump_size` shell
   command on the LBS build before fixing `CONFIG_MEMFAULT_RAM_BACKED_COREDUMP_SIZE`.
 
-## App behavior to preserve (PLAN.md §4.2)
+## App behavior to preserve
 
 - **MDS access control:** register `bt_mds_cb` with an `access_enable` callback that gates
   MDS access to the secured/connected gateway link (`CONFIG_BT_SMP=y` is required).
@@ -104,10 +96,3 @@ the firmware version. With `CONFIG_MEMFAULT_NCS_FW_VERSION_STATIC=y` and no expl
 bump a release by editing `app/VERSION` only. The GNU Build ID (used for symbolication) is
 independent and changes every build — `zephyr.elf` must be uploaded to Memfault for
 symbol resolution.
-
-## Open items gating implementation (PLAN.md §8)
-
-Several decisions are unresolved and block a clean task breakdown — most critically whether
-a released Memfault firmware SDK provides native runtime project-key support
-(`MEMFAULT_PROJECT_KEY_LEN`, runtime-settable `api_key`) and which `sdk-nrf` SHA pins it.
-Check PLAN.md §3.3 and §8 before assuming any of these are settled.
