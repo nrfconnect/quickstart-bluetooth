@@ -9,12 +9,14 @@
 #
 # For each configured project (A, then B):
 #   1. Write its project key over the serial shell and `kernel reboot cold`.
-#   2. Run the BLE gateway (--upload) so the device drains a fresh heartbeat; poll
+#   2. Read the device serial over the shell (`mflt get_device_info`, see
+#      test_device_info.py) rather than from the BLE gateway's output.
+#   3. Run the BLE gateway (--upload) so the device drains a fresh heartbeat; poll
 #      the Memfault REST API until the device's `last_seen` advances, proving the
 #      switch re-targeted uploads to this project. (A heartbeat drain reliably
 #      bumps last_seen; a coredump-carrying drain does not, so verification uses a
 #      clean heartbeat.)
-#   3. Force a coredump (`mflt test hardfault`) with this project's key active and
+#   4. Force a coredump (`mflt test hardfault`) with this project's key active and
 #      drain it, so a real crash — not just reboot/heartbeat events — is captured
 #      in this project. Draining also clears the coredump so the next project's
 #      heartbeat check stays clean.
@@ -51,6 +53,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
+from test_device_info import get_device_serial  # noqa: E402
 from test_project_key import KEY, serial_session  # noqa: E402
 
 API_BASE = os.environ.get("MEMFAULT_API_BASE", "https://api.memfault.com")
@@ -135,7 +138,7 @@ def crash_and_reboot():
 
 
 def run_gateway_upload():
-    """Run the gateway with --upload; return the device serial it read over MDS."""
+    """Run the gateway with --upload so the device drains its queued chunks."""
     print(f"    running gateway --upload for {UPLOAD_SECONDS}s …")
     proc = subprocess.run(
         ["node", "gateway.js", "--upload", "--seconds", str(UPLOAD_SECONDS)],
@@ -145,12 +148,6 @@ def run_gateway_upload():
         text=True,
     )
     print(proc.stdout)
-    serial = None
-    for line in proc.stdout.splitlines():
-        # Gateway prints: "... Device Identifier: 87EBA6C141191A51"
-        if "Device Identifier:" in line:
-            serial = line.split("Device Identifier:", 1)[1].strip()
-    return serial
 
 
 def poll_last_seen(org, project, serial, since, timeout=150):
@@ -171,12 +168,11 @@ def test_project(org, name, slug, project_key):
     print(f"\n=== project {name}: {slug} ===")
     since = datetime.now(timezone.utc)
     switch_key_and_reboot(project_key)
+    serial = get_device_serial(PORT)
+    print(f"    device serial (mflt get_device_info): {serial}")
     # Verify the switch with a clean heartbeat drain — last_seen advances
     # reliably (a coredump-carrying drain does not).
-    serial = run_gateway_upload()
-    if not serial:
-        print(f"[FAIL] switch to {name} ({slug}): could not determine device serial")
-        return False
+    run_gateway_upload()
     ok = poll_last_seen(org, slug, serial, since)
     mark = "PASS" if ok else "FAIL"
     detail = f"device {serial} reported into project after switch" if ok else \

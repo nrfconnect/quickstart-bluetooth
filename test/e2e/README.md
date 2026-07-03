@@ -30,12 +30,30 @@ QSBT_BUILD_DIR=<workspace>/build \
 
 Exit code is non-zero if any check fails.
 
+## `test_device_info.py` — command contract (offline, no cloud)
+
+Validates the `mflt get_device_info` shell command: that it prints all four
+fields (S/N, SW type, SW version, HW version), reports a real device serial,
+and reports the same serial across repeated reads. This is regression
+coverage for a bug where the command ran but printed nothing — its output
+used `printk()`, which wasn't coordinated with the shell backend while
+`CONFIG_LOG` was disabled (see `app/prj.conf`).
+
+```sh
+… python3 quickstart-bluetooth/test/e2e/test_device_info.py
+```
+
+Also exposes `get_device_serial()`, used by `test_project_switch_e2e.py` below
+to read the device serial over the shell instead of parsing it out of the BLE
+gateway's output.
+
 ## `test_project_switch_e2e.py` — cloud e2e (project switching)
 
 Proves that switching the project key over the shell re-targets the device to
 that project in Memfault: for each configured project it writes the key,
-reboots, runs the BLE gateway (`../gateway`) with `--upload`, then polls the
-Memfault REST API until the device's `last_seen` advances.
+reboots, reads the device serial over the shell (`mflt get_device_info`), runs
+the BLE gateway (`../gateway`) with `--upload`, then polls the Memfault REST
+API until the device's `last_seen` advances.
 
 Needs Node on PATH (for the gateway) and a Memfault API credential — an
 Organization Auth Token (Bearer, preferred) or a User API key (HTTP Basic).
