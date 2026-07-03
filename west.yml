@@ -61,4 +61,4 @@ manifest:
       import: true
 
   self:
-    path: quickstart-bluetooth
+    path: project
