@@ -9,13 +9,17 @@ manifest:
       url-base: https://github.com/nrfconnect
     - name: fork
       url-base: https://github.com/gregersrygg
+    - name: gminn
+      url-base: https://github.com/gminn
 
   projects:
     - name: sdk-nrf
-      remote: fork
+      remote: gminn
       repo-path: sdk-nrf
       path: nrf
-      revision: ee28a77e225f30ebc2255790a19d06f23b2cb4ce
+      # gminn/upgrade-memfault-1.42.0: memfault-firmware-sdk 1.42.0 with
+      # runtime-configurable project keys.
+      revision: dad4ae8166767f5bdbe304f025043080259fe144
       import: true
 
   self:
