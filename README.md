@@ -15,11 +15,11 @@ supported target.
 
 | Control | Behaviour |
 |---------|-----------|
-| **Button 1** | LBS button characteristic — gateway/central sees the press (standard LBS). |
-| **Button 2** | **Demo crash** — forces a fault (`k_oops`) to generate a Memfault coredump. Demo-only. |
-| **LED 1** | Run status (1 Hz blink — firmware is alive). |
-| **LED 2** | BLE connection status. |
-| **LED 3** | LBS LED — controlled by the gateway/central (standard LBS). |
+| **Button 0** | LBS button characteristic — gateway/central sees the press (standard LBS). |
+| **Button 1** | **Demo crash** — forces a fault (`k_oops`) to generate a Memfault coredump. Demo-only. |
+| **LED 0** | Run status (1 Hz blink — firmware is alive). |
+| **LED 1** | BLE connection status. |
+| **LED 2** | LBS LED — controlled by the gateway/central (standard LBS). |
 
 Once a gateway connects and the link is secured, the device sends a heartbeat
 immediately, so it shows up in Memfault within seconds instead of waiting for the
@@ -106,7 +106,7 @@ This lets support correlate a physical board with its Memfault device.
    on desktop, the nRF Connect for Desktop gateway. The link must be secured
    (paired) — MDS access is gated to the secured connection.
 2. The device **appears in Memfault** within seconds (heartbeat-on-connect).
-3. Press **Button 2** to force a crash. After the device reconnects, the gateway
+3. Press **Button 1** to force a crash. After the device reconnects, the gateway
    uploads the coredump.
 
 ## Upload symbols for symbolication

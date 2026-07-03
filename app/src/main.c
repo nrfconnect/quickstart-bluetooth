@@ -13,11 +13,11 @@
  * never does on-device HTTP/TLS.
  *
  * Controls (nRF54L15 DK):
- *   Button 1  LBS button characteristic (standard LBS — central sees the press)
- *   Button 2  DEMO-ONLY crash trigger (forces a fault -> Memfault coredump)
- *   LED 1     run status (1 Hz heartbeat blink)
- *   LED 2     BLE connection status
- *   LED 3     LBS LED (controlled by the central/gateway — standard LBS)
+ *   Button 0  LBS button characteristic (standard LBS — central sees the press)
+ *   Button 1  DEMO-ONLY crash trigger (forces a fault -> Memfault coredump)
+ *   LED 0     run status (1 Hz heartbeat blink)
+ *   LED 1     BLE connection status
+ *   LED 2     LBS LED (controlled by the central/gateway — standard LBS)
  */
 
 #include <zephyr/kernel.h>
