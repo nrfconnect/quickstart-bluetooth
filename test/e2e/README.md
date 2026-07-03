@@ -7,7 +7,7 @@ port (`/dev/tty.usbmodem*03` on macOS).
 
 ```sh
 nrfutil toolchain-manager launch --ncs-version v3.3.1 --chdir <workspace> -- \
-    python3 quickstart-bluetooth/test/e2e/<test>.py [options]
+    python3 project/test/e2e/<test>.py [options]
 ```
 
 ## `test_project_key.py` — command contract (offline, no cloud)
@@ -21,11 +21,11 @@ Validates the `settings` shell contract for `memfault/project_key`:
 
 ```sh
 # device already flashed; checks current behaviour and leaves the key cleared
-… python3 quickstart-bluetooth/test/e2e/test_project_key.py
+… python3 project/test/e2e/test_project_key.py
 
 # genuinely check the post-flash state by erasing first (needs a build dir)
 QSBT_BUILD_DIR=<workspace>/build \
-… python3 quickstart-bluetooth/test/e2e/test_project_key.py --recover
+… python3 project/test/e2e/test_project_key.py --recover
 ```
 
 Exit code is non-zero if any check fails.
@@ -40,7 +40,7 @@ used `printk()`, which wasn't coordinated with the shell backend while
 `CONFIG_LOG` was disabled (see `app/prj.conf`).
 
 ```sh
-… python3 quickstart-bluetooth/test/e2e/test_device_info.py
+… python3 project/test/e2e/test_device_info.py
 ```
 
 Also exposes `get_device_serial()`, used by `test_project_switch_e2e.py` below
@@ -61,12 +61,12 @@ Secrets are read from the environment or an untracked repo-root `.env` — copy
 `.env.example`:
 
 ```sh
-cp quickstart-bluetooth/.env.example quickstart-bluetooth/.env
+cp project/.env.example project/.env
 # edit .env with your API token, org slug, and the project(s) to test
 
-cd quickstart-bluetooth/test/gateway && npm install && cd -
-# the test loads quickstart-bluetooth/.env by default
-… python3 quickstart-bluetooth/test/e2e/test_project_switch_e2e.py
+cd project/test/gateway && npm install && cd -
+# the test loads project/.env by default
+… python3 project/test/e2e/test_project_switch_e2e.py
 ```
 
 The repo-root `.env` is gitignored. Configure at least `MEMFAULT_PROJECT_B_*`

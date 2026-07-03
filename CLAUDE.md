@@ -32,7 +32,7 @@ cd <workspace-dir>
 west update
 
 # Build / flash for the only supported board
-west build -b nrf54l15dk/nrf54l15/cpuapp quickstart-bluetooth/app
+west build -b nrf54l15dk/nrf54l15/cpuapp project/app
 west flash
 ```
 

@@ -56,20 +56,20 @@ jobs:
       - name: Checkout (into the manifest-repo path from west.yml self.path)
         uses: actions/checkout@v7
         with:
-          path: quickstart-bluetooth
+          path: project
 
       - name: Set release version in app/VERSION
         if: inputs.version != ''
         # app/VERSION is the single source of truth (PLAN.md §4.5); for releases
         # it is regenerated from the release input rather than committed.
         run: |
-          python3 quickstart-bluetooth/scripts/app_version.py "${{ inputs.version }}" \
-            > quickstart-bluetooth/app/VERSION
+          python3 project/scripts/app_version.py "${{ inputs.version }}" \
+            > project/app/VERSION
           echo "Building app/VERSION:"
-          cat quickstart-bluetooth/app/VERSION
+          cat project/app/VERSION
 
       - name: Initialise west workspace from the local manifest
-        run: west init -l quickstart-bluetooth
+        run: west init -l project
 
       - name: West update (shallow, against the pinned sdk-nrf SHA)
         run: west update --narrow -o=--depth=1
@@ -79,7 +79,7 @@ jobs:
 
       - name: Build for nrf54l15dk/nrf54l15/cpuapp
         # --no-sysbuild: plain app image, no MCUboot/sysbuild (PLAN.md §1).
-        run: west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild quickstart-bluetooth/app
+        run: west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild project/app
 
       - name: Read Memfault software version/type from the build config
         id: fwver

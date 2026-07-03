@@ -29,8 +29,8 @@
 # gateway subprocess:
 #
 #   nrfutil toolchain-manager launch --ncs-version v3.3.1 --chdir <workspace> -- \
-#       python3 quickstart-bluetooth/test/e2e/test_project_switch_e2e.py \
-#       --env-file quickstart-bluetooth/.env
+#       python3 project/test/e2e/test_project_switch_e2e.py \
+#       --env-file project/.env
 #
 # Required environment (see .env.example):
 #   MEMFAULT_ORG_TOKEN                       (Organization Auth Token; Bearer) — or —

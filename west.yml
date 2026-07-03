@@ -1,41 +1,5 @@
-# quickstart-bluetooth — T2 west manifest (top-level / star topology)
-#
-# This repository is the top-level manifest repo. It imports sdk-nrf, which in
-# turn imports Zephyr and every NCS module (including the vendored
-# memfault-firmware-sdk). See PLAN.md §2.1.
-#
-# ---------------------------------------------------------------------------
-# REVISION PIN POLICY
-# ---------------------------------------------------------------------------
-# The sdk-nrf `revision` below is a *pinned SHA*, never a moving branch, so the
-# workspace is reproducible. Bumping it is a deliberate, CI-gated action: change
-# the SHA in its own commit, let CI build nrf54l15dk/nrf54l15/cpuapp green, then
-# merge. Do not track `main`.
-#
-# ---------------------------------------------------------------------------
-# PHASE 1 — TEMPORARY FORK (current)
-# ---------------------------------------------------------------------------
-# The runtime Memfault project-key support this app needs is not yet upstream
-# (tracked by NPE-1778 → memfault-firmware-sdk, NPE-1768/NPE-1769 → sdk-nrf).
-# To unblock app development now, we pin a temporary personal fork of sdk-nrf
-# that already carries a working runtime key:
-#
-#   fork:   https://github.com/gregersrygg/sdk-nrf  (branch bluetooth-quickstart)
-#   base:   NCS v3.3.0 + noahp 53383c1e + 56d4253d (settings-backed key)
-#                                       + da99170d (MEMFAULT_PROJECT_KEY_LEN)
-#   note:   the peripheral_mds sample commits on top of the fork are reference
-#           only; this app's app/ does not build them. MCUboot/OTA stays out of
-#           scope (PLAN.md §1).
-#
-# It provides CONFIG_MEMFAULT_PROJECT_KEY_SETTINGS=y (load `memfault/project_key`
-# from Zephyr settings at boot, overriding the compile-time key).
-#
-# ---------------------------------------------------------------------------
-# PHASE 2 — UPSTREAM SWAP-BACK (later)
-# ---------------------------------------------------------------------------
-# When NPE-1778/NPE-1768/NPE-1769 merge, change `remote: fork` → `remote: ncs`
-# and pin an upstream sdk-nrf SHA that contains the merged work, then remove the
-# `fork` remote. Track via the revision pin policy above.
+# Copyright (c) 2026 Nordic Semiconductor
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
 manifest:
   version: "1.0"
@@ -43,22 +7,16 @@ manifest:
   remotes:
     - name: ncs
       url-base: https://github.com/nrfconnect
-    # PHASE 1 only — remove together with the fork pin during the Phase 2 swap.
     - name: fork
       url-base: https://github.com/gregersrygg
 
   projects:
     - name: sdk-nrf
-      # PHASE 1: temporary fork (see header). PHASE 2: switch to `remote: ncs`.
       remote: fork
       repo-path: sdk-nrf
-      # Check out at `nrf` (not the project name `sdk-nrf`): the sdk-nrf module
-      # has no explicit name in its zephyr/module.yml, so Zephyr derives the
-      # module name from the directory. NCS tooling assumes the module is named
-      # `nrf`, so the directory must be `nrf`.
       path: nrf
       revision: ee28a77e225f30ebc2255790a19d06f23b2cb4ce
       import: true
 
   self:
-    path: quickstart-bluetooth
+    path: project

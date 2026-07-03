@@ -60,7 +60,7 @@ west update
 ## Build & flash
 
 ```sh
-west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild quickstart-bluetooth/app
+west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild project/app
 west flash
 ```
 

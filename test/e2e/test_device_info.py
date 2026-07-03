@@ -19,7 +19,7 @@
 # pyserial lives in the NCS toolchain Python, so run this via the toolchain:
 #
 #   nrfutil toolchain-manager launch --ncs-version v3.3.1 --chdir <workspace> -- \
-#       python3 quickstart-bluetooth/test/e2e/test_device_info.py
+#       python3 project/test/e2e/test_device_info.py
 #
 # Options:
 #   --port <dev>   Serial console (VCOM1). Default: $QSBT_PORT or the value below.
