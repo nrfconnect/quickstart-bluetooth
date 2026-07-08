@@ -61,7 +61,11 @@ jobs:
 
       - name: Build for nrf54l15dk/nrf54l15/cpuapp
         # --no-sysbuild: plain app image, no MCUboot/sysbuild.
-        run: west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild project/app
+        run: |
+          west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild \
+            project/app \
+            -- \
+            -DCONFIG_MEMFAULT_NCS_PROJECT_KEY=\"${{ secrets.MEMFAULT_PROJECT_KEY }}\"
 
       - name: Read Memfault software version/type from the build config
         id: fwver

@@ -121,14 +121,15 @@ jobs:
         # symbols already uploaded (idempotent re-runs).
         env:
           MEMFAULT_ORG_TOKEN: ${{ secrets.MEMFAULT_ORG_TOKEN }}
-          MEMFAULT_ORG_SLUG: ${{ vars.MEMFAULT_ORG_SLUG }}
+          MEMFAULT_ORG_SLUG: ${{ secrets.MEMFAULT_ORG_SLUG }}
+          MEMFAULT_PROJECT: ${{ secrets.MEMFAULT_PROJECT }}
         run: |
           set -euo pipefail
           pip install --quiet memfault-cli
           memfault \
             --org-token "$MEMFAULT_ORG_TOKEN" \
             --org "$MEMFAULT_ORG_SLUG" \
-            --project quickstart-shared-project \
+            --project "$MEMFAULT_PROJECT" \
             upload-mcu-symbols \
             --software-type "${{ needs.build.outputs.fw_type }}" \
             --software-version "${{ needs.build.outputs.fw_version }}" \
