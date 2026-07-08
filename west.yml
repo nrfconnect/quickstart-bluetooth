@@ -2,21 +2,18 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
 manifest:
-  version: "1.0"
-
   remotes:
     - name: ncs
       url-base: https://github.com/nrfconnect
-    - name: fork
-      url-base: https://github.com/gregersrygg
 
   projects:
     - name: sdk-nrf
-      remote: fork
+      remote: ncs
       repo-path: sdk-nrf
       path: nrf
-      revision: ee28a77e225f30ebc2255790a19d06f23b2cb4ce
+      revision: baa6e3e7f211a8771f29abd09fc456fb579ad2c3
       import:
+        # Exclude some known-unused and large modules
         name-blocklist:
           - lvgl
           - matter

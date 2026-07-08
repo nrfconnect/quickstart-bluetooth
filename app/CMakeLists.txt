@@ -11,3 +11,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(quickstart_bluetooth)
 
 target_sources(app PRIVATE src/main.c)
+
+# Temporary workaround until this fix is upstreamed:
+# https://github.com/memfault/memfault-firmware-sdk/pull/120
+zephyr_compile_definitions(MEMFAULT_PROJECT_KEY_LEN=32)
