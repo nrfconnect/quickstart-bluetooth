@@ -60,12 +60,14 @@ jobs:
         run: west zephyr-export
 
       - name: Build for nrf54l15dk/nrf54l15/cpuapp
+        env:
+          MEMFAULT_PROJECT_KEY: ${{ secrets.MEMFAULT_PROJECT_KEY }}
         # --no-sysbuild: plain app image, no MCUboot/sysbuild.
         run: |
           west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild \
             project/app \
             -- \
-            -DCONFIG_MEMFAULT_NCS_PROJECT_KEY=\"${{ secrets.MEMFAULT_PROJECT_KEY }}\"
+            -DCONFIG_MEMFAULT_NCS_PROJECT_KEY=\"${MEMFAULT_PROJECT_KEY}\"
 
       - name: Read Memfault software version/type from the build config
         id: fwver
