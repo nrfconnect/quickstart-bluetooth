@@ -67,7 +67,7 @@ jobs:
           west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild \
             project/app \
             -- \
-            -DCONFIG_MEMFAULT_NCS_PROJECT_KEY=\"${MEMFAULT_PROJECT_KEY}\"
+            -DCONFIG_MEMFAULT_NCS_PROJECT_KEY=\"$MEMFAULT_PROJECT_KEY\"
 
       - name: Read Memfault software version/type from the build config
         id: fwver
