@@ -17,6 +17,10 @@ on:
         type: string
         required: false
         default: quickstart-bluetooth-nrf54l15dk
+    secrets:
+      MEMFAULT_PROJECT_KEY:
+        description: Memfault project key baked into the build via CONFIG_MEMFAULT_NCS_PROJECT_KEY.
+        required: true
     outputs:
       fw_version:
         description: Memfault software version reported by the build (CONFIG_MEMFAULT_NCS_FW_VERSION).
@@ -29,7 +33,7 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.3.1
+      image: ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.4.0
     defaults:
       run:
         shell: bash

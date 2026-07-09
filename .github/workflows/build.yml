@@ -19,6 +19,8 @@ concurrency:
 jobs:
   build:
     uses: ./.github/workflows/build-app.yml
+    secrets:
+      MEMFAULT_PROJECT_KEY: ${{ secrets.MEMFAULT_PROJECT_KEY }}
 
 # Follow-ups (out of scope for this workflow, tracked separately):
 #   - twister build-only smoke test once a testcase/sample.yaml exists.
