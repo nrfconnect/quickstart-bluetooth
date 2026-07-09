@@ -17,6 +17,10 @@ on:
         type: string
         required: false
         default: quickstart-bluetooth-nrf54l15dk
+    secrets:
+      MEMFAULT_PROJECT_KEY:
+        description: Memfault project key baked into the build via CONFIG_MEMFAULT_NCS_PROJECT_KEY.
+        required: true
     outputs:
       fw_version:
         description: Memfault software version reported by the build (CONFIG_MEMFAULT_NCS_FW_VERSION).
@@ -60,14 +64,12 @@ jobs:
         run: west zephyr-export
 
       - name: Build for nrf54l15dk/nrf54l15/cpuapp
-        env:
-          MEMFAULT_PROJECT_KEY: ${{ secrets.MEMFAULT_PROJECT_KEY }}
         # --no-sysbuild: plain app image, no MCUboot/sysbuild.
         run: |
           west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild \
             project/app \
             -- \
-            -DCONFIG_MEMFAULT_NCS_PROJECT_KEY=\"$MEMFAULT_PROJECT_KEY\"
+            -DCONFIG_MEMFAULT_NCS_PROJECT_KEY=\"${{ secrets.MEMFAULT_PROJECT_KEY }}\"
 
       - name: Read Memfault software version/type from the build config
         id: fwver

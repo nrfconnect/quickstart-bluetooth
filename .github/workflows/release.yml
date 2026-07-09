@@ -71,6 +71,8 @@ jobs:
     uses: ./.github/workflows/build-app.yml
     with:
       version: ${{ inputs.version }}
+    secrets:
+      MEMFAULT_PROJECT_KEY: ${{ secrets.MEMFAULT_PROJECT_KEY }}
 
   publish:
     needs: [validate, build]
