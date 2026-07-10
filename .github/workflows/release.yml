@@ -44,7 +44,7 @@ on:
         default: false
 
 permissions:
-  contents: write # tag push + release creation
+  contents: read
 
 jobs:
   validate:
@@ -53,6 +53,8 @@ jobs:
       tag: ${{ steps.parse.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Validate version and derive tag
         id: parse
@@ -77,6 +79,8 @@ jobs:
   publish:
     needs: [validate, build]
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write # tag push + release creation
     defaults:
       run:
         shell: bash
