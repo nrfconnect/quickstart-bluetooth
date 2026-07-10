@@ -29,6 +29,9 @@ on:
         description: Memfault software type reported by the build (CONFIG_MEMFAULT_NCS_FW_TYPE).
         value: ${{ jobs.build.outputs.fw_type }}
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -45,6 +48,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           path: project
+          persist-credentials: false
 
       - name: Set release version in app/VERSION
         if: inputs.version != ''
