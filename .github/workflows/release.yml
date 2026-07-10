@@ -43,12 +43,11 @@ on:
         required: false
         default: false
 
-permissions:
-  contents: read
-
 jobs:
   validate:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     outputs:
       tag: ${{ steps.parse.outputs.tag }}
     steps:
