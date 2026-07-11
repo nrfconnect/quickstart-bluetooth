@@ -48,10 +48,10 @@ def parse_version(ref: str):
         major = int(parts[0])
         minor = int(parts[1])
         patch = int(patch_str)
-    except ValueError:
+    except ValueError as e:
         raise ValueError(
             f"invalid version {ref!r}: MAJOR, MINOR and PATCH must be integers"
-        )
+        ) from e
 
     return major, minor, patch, extra
 

@@ -1,0 +1,8 @@
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+# UP031: misfires on `%s` used to build a regex pattern, not to format output.
+ignore = ["UP031"]

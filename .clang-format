@@ -1,0 +1,38 @@
+---
+# Zephyr coding style, mirrored from upstream zephyrproject-rtos/zephyr's
+# .clang-format so app/src stays consistent with the sdk-nrf/Zephyr code it
+# sits alongside.
+BasedOnStyle: WebKit
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: AcrossComments
+AlignEscapedNewlines: Left
+AlignOperands: Align
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBraces: Linux
+BreakBeforeTernaryOperators: false
+BreakStringLiterals: false
+ColumnLimit: 100
+ContinuationIndentWidth: 8
+IndentCaseLabels: false
+IndentWidth: 8
+UseTab: ForContinuationAndIndentation
+TabWidth: 8
+IndentGotoLabels: false
+MaxEmptyLinesToKeep: 1
+PointerAlignment: Right
+ReflowComments: false
+SortIncludes: false
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false

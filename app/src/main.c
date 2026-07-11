@@ -52,9 +52,8 @@
 /* App-identity marker: an empty vendor service whose UUID the nRF Toolbox app
  * discovers over GATT to recognize this firmware and tailor its UX.
  */
-#define BT_UUID_QSBT_ID_VAL \
-	BT_UUID_128_ENCODE(0xb2007aaa, 0xc203, 0x43a5, 0x8b6f, 0xa7f3d001a1e0)
-#define BT_UUID_QSBT_ID BT_UUID_DECLARE_128(BT_UUID_QSBT_ID_VAL)
+#define BT_UUID_QSBT_ID_VAL BT_UUID_128_ENCODE(0xb2007aaa, 0xc203, 0x43a5, 0x8b6f, 0xa7f3d001a1e0)
+#define BT_UUID_QSBT_ID     BT_UUID_DECLARE_128(BT_UUID_QSBT_ID_VAL)
 
 /* Named to sort alphabetically before lbs_svc/mds_svc: Zephyr's
  * BT_GATT_SERVICE_DEFINE places services into a linker section sorted by name
@@ -120,8 +119,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	}
 }
 
-static void security_changed(struct bt_conn *conn, bt_security_t level,
-			     enum bt_security_err err)
+static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_security_err err)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
 

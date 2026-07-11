@@ -148,7 +148,9 @@ async function run(peripheral) {
   setTimeout(async () => {
     try {
       await exportChar.writeAsync(Buffer.from([0x00]), false); // stop streaming
-    } catch (e) {}
+    } catch {
+      // best-effort; we're tearing down the connection regardless.
+    }
     // Finish uploading everything received (in order) before disconnecting.
     while (UPLOAD && (uploadQueue.length || draining)) {
       await sleep(100);
@@ -160,7 +162,9 @@ async function run(peripheral) {
     );
     try {
       await peripheral.disconnectAsync();
-    } catch (e) {}
+    } catch {
+      // best-effort; we're exiting regardless.
+    }
     process.exit(0);
   }, SECONDS * 1000);
 }

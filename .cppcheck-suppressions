@@ -1,0 +1,12 @@
+# cppcheck suppressions for quickstart-bluetooth.
+#
+# missingInclude(System): CI runs cppcheck without a full west workspace, so
+# Zephyr/NCS/Memfault SDK headers aren't resolvable. This only disables the
+# "can't find header" note, not analysis of app/src itself.
+missingInclude
+missingIncludeSystem
+
+# constParameterCallback: conn/etc. params match fixed Zephyr callback
+# signatures (bt_conn_cb, bt_mds_cb, ...); they can't be made const without
+# diverging from the struct's function-pointer type.
+constParameterCallback
