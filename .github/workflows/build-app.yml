@@ -87,11 +87,28 @@ jobs:
           echo "fw_type=$TYPE" >> "$GITHUB_OUTPUT"
           echo "Memfault software: type=$TYPE version=$VER"
 
-      - name: Upload build artifacts (hex + elf for symbolication)
+      - name: Install SBOM (west ncs-sbom) dependencies
+        # scancode-toolkit (one of the default license detectors) needs these
+        # system libs on top of its pip deps. See:
+        # https://nrfconnectdocs.nordicsemi.com/ncs/latest/nrf/scripts/west_commands/sbom/README.html
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            python3-dev bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
+          pip3 install --quiet -r nrf/scripts/requirements-west-ncs-sbom.txt
+
+      - name: Generate SPDX SBOM
+        run: |
+          west ncs-sbom -d build \
+            --package-supplier "Nordic Semiconductor ASA" \
+            --output-spdx build/zephyr/quickstart-bluetooth.spdx
+
+      - name: Upload build artifacts (hex + elf + spdx)
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact-name }}
           path: |
             build/zephyr/zephyr.hex
             build/zephyr/zephyr.elf
+            build/zephyr/quickstart-bluetooth.spdx
           if-no-files-found: error
