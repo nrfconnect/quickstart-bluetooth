@@ -6,10 +6,15 @@
   "license": "LicenseRef-Nordic-5-Clause",
   "scripts": {
     "gateway": "node gateway.js",
-    "discover": "node discover.js"
+    "discover": "node discover.js",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@abandonware/noble": "^1.9.2-26"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "eslint": "^9.38.0"
   },
   "overrides": {
     "tar": "^7.5.19"

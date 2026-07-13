@@ -1,0 +1,70 @@
+# Lint CI: static analysis and formatting checks for every language in this
+# repo. Runs independently of build.yml (which only builds firmware) so a lint
+# failure doesn't need the full NCS toolchain container.
+
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check C formatting
+        run: |
+          find app -name '*.c' -o -name '*.h' | xargs clang-format --dry-run --Werror
+
+  cppcheck:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+      - name: Run cppcheck
+        run: |
+          find app -name '*.c' -o -name '*.h' | xargs cppcheck \
+            --enable=warning,style,performance,portability \
+            --error-exitcode=1 \
+            --suppressions-list=.cppcheck-suppressions \
+            --inline-suppr
+
+  ruff:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89  # v4.1.0
+
+  eslint:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: test/gateway
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: test/gateway/package-lock.json
+      - run: npm ci
+      - run: npm run lint
