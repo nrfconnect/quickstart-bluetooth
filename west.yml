@@ -12,6 +12,7 @@ manifest:
       repo-path: sdk-nrf
       path: nrf
       revision: baa6e3e7f211a8771f29abd09fc456fb579ad2c3
+      west-commands: scripts/west-commands.yml
       import:
         # Exclude some known-unused and large modules
         name-blocklist:
