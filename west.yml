@@ -11,7 +11,7 @@ manifest:
       remote: ncs
       repo-path: sdk-nrf
       path: nrf
-      revision: baa6e3e7f211a8771f29abd09fc456fb579ad2c3
+      revision: 40e850a75071f913bc54147a70aad165b2ca184a
       west-commands: scripts/west-commands.yml
       import:
         # Exclude some known-unused and large modules
