@@ -1,5 +1,9 @@
 # quickstart-bluetooth
 
+[![Release](https://img.shields.io/github/v/release/nrfconnect/quickstart-bluetooth)](https://github.com/nrfconnect/quickstart-bluetooth/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/nrfconnect/quickstart-bluetooth/build.yml?event=push&branch=main&label=build)](https://github.com/nrfconnect/quickstart-bluetooth/actions/workflows/build.yml?query=branch%3Amain+event%3Apush)
+[![Lint](https://img.shields.io/github/actions/workflow/status/nrfconnect/quickstart-bluetooth/lint.yml?event=push&branch=main&label=lint)](https://github.com/nrfconnect/quickstart-bluetooth/actions/workflows/lint.yml?query=branch%3Amain+event%3Apush)
+
 A production [nRF Connect SDK](https://www.nordicsemi.com/Products/Development-software/nrf-connect-sdk)
 (NCS) application for the *nRF Connect for Desktop Quick Start* guide. It is the
 `peripheral_lbs` sample (button/LED over Bluetooth® LE) with added
