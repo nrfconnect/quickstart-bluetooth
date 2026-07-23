@@ -3,16 +3,18 @@
 # Manually dispatched. Given a release version string it:
 #   1. validates the version format and derives the git tag + Memfault software
 #      version (scripts/app_version.py);
-#   2. builds the firmware with app/VERSION set to that version (build-app.yml),
-#      so the device reports the release version to Memfault, and generates the
-#      SPDX SBOM (west ncs-sbom) alongside zephyr.hex + zephyr.elf;
-#   3. renames those three build outputs to include the version + board/chip
-#      (matching the Asset Tracker Template release naming, e.g.
+#   2. builds the firmware for every supported board with app/VERSION set to that
+#      version (build-app.yml), so each device reports the release version to
+#      Memfault, and generates the SPDX SBOM (west ncs-sbom) alongside
+#      zephyr.hex + zephyr.elf;
+#   3. renames each board's three build outputs to include the version +
+#      board/chip (matching the Asset Tracker Template release naming, e.g.
 #      quickstart-bluetooth-v1.2.3-nrf54l15dk-nrf54l15.hex) — no zip;
-#   4. uploads zephyr.elf as symbols to the Memfault "quickstart-shared-project"
-#      (registers the software version for symbolication);
-#   5. tags the target commit and creates a GitHub release with the renamed
-#      .hex, .elf, and .spdx attached directly.
+#   4. uploads each board's zephyr.elf as symbols to the Memfault project
+#      (registers the software version for symbolication; every board has its
+#      own GNU Build ID);
+#   5. tags the target commit and creates a single GitHub release with all
+#      boards' renamed .hex, .elf, and .spdx attached directly.
 #
 # The version input is the single knob — do NOT hardcode versions elsewhere; the
 # committed app/VERSION stays at 0.0.0-dev and is overwritten at build time.
@@ -73,17 +75,45 @@ jobs:
 
   build:
     needs: validate
+    strategy:
+      fail-fast: false
+      # Supported boards. Keep in sync with the matrix in build.yml and the
+      # publish job below. sysbuild=true for nRF54H20 (BLE controller on cpurad).
+      matrix:
+        include:
+          - board: nrf54l15dk/nrf54l15/cpuapp
+            board-id: nrf54l15dk-nrf54l15
+            sysbuild: false
+          - board: nrf54lm20dk/nrf54lm20a/cpuapp
+            board-id: nrf54lm20dk-nrf54lm20a
+            sysbuild: false
+          - board: nrf54h20dk/nrf54h20/cpuapp
+            board-id: nrf54h20dk-nrf54h20
+            sysbuild: true
     uses: ./.github/workflows/build-app.yml
     with:
       version: ${{ inputs.version }}
+      board: ${{ matrix.board }}
+      board-id: ${{ matrix.board-id }}
+      sysbuild: ${{ matrix.sysbuild }}
     secrets:
       MEMFAULT_PROJECT_KEY: ${{ secrets.MEMFAULT_PROJECT_KEY }}
 
+  # Per-board: rename the build outputs, upload that board's symbols to Memfault,
+  # and stage the renamed files as a workflow artifact for the release job.
   publish:
     needs: [validate, build]
+    strategy:
+      fail-fast: false
+      # Keep in sync with the build matrix above.
+      matrix:
+        include:
+          - board-id: nrf54l15dk-nrf54l15
+          - board-id: nrf54lm20dk-nrf54lm20a
+          - board-id: nrf54h20dk-nrf54h20
     runs-on: ubuntu-24.04
     permissions:
-      contents: write # tag push + release creation
+      contents: read
     defaults:
       run:
         shell: bash
@@ -96,7 +126,7 @@ jobs:
       - name: Download build artifacts (hex + elf + spdx)
         uses: actions/download-artifact@v8
         with:
-          name: quickstart-bluetooth-nrf54l15dk
+          name: quickstart-bluetooth-${{ matrix.board-id }}
           path: artifacts
 
       - name: Locate build outputs
@@ -114,29 +144,29 @@ jobs:
       - name: Rename release files (version + board/chip)
         # Matches the Asset Tracker Template release naming convention:
         # <app>-<tag>-<board>-<chip>.<ext> — attached directly, no zip.
+        # matrix.board-id is already <board>-<chip>.
         id: release_files
         run: |
           set -euo pipefail
-          BASENAME="quickstart-bluetooth-${{ needs.validate.outputs.tag }}-nrf54l15dk-nrf54l15"
+          BASENAME="quickstart-bluetooth-${{ needs.validate.outputs.tag }}-${{ matrix.board-id }}"
           mkdir -p release
           cp "${{ steps.files.outputs.hex }}" "release/${BASENAME}.hex"
           cp "${{ steps.files.outputs.elf }}" "release/${BASENAME}.elf"
           cp "${{ steps.files.outputs.spdx }}" "release/${BASENAME}.spdx"
-          echo "hex=release/${BASENAME}.hex" >> "$GITHUB_OUTPUT"
-          echo "elf=release/${BASENAME}.elf" >> "$GITHUB_OUTPUT"
-          echo "spdx=release/${BASENAME}.spdx" >> "$GITHUB_OUTPUT"
 
-      - name: Upload release files as workflow artifacts (always, for inspection)
+      - name: Upload renamed release files as a workflow artifact
+        # Collected by the release job (and available for inspection on dry runs).
         uses: actions/upload-artifact@v7
         with:
-          name: quickstart-bluetooth-${{ needs.validate.outputs.tag }}-release-files
+          name: quickstart-bluetooth-${{ needs.validate.outputs.tag }}-release-files-${{ matrix.board-id }}
           path: release/
           if-no-files-found: error
 
       - name: Upload symbols to Memfault
         # Software type/version come from the build config so the symbol file is
-        # linked to the version the device reports. --check-uploaded skips
-        # symbols already uploaded (idempotent re-runs).
+        # linked to the version the device reports. Each board's ELF has its own
+        # GNU Build ID, so all three are uploaded under the same software
+        # version. --check-uploaded skips symbols already uploaded (idempotent).
         env:
           MEMFAULT_ORG_TOKEN: ${{ secrets.MEMFAULT_ORG_TOKEN }}
           MEMFAULT_ORG_SLUG: ${{ secrets.MEMFAULT_ORG_SLUG }}
@@ -154,8 +184,25 @@ jobs:
             --check-uploaded \
             "${{ steps.files.outputs.elf }}"
 
+  # Single GitHub release with every board's renamed files attached.
+  release:
+    needs: [validate, publish]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # tag push + release creation
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Download all boards' renamed release files
+        uses: actions/download-artifact@v8
+        with:
+          pattern: quickstart-bluetooth-${{ needs.validate.outputs.tag }}-release-files-*
+          path: release
+          merge-multiple: true
+
       - name: Create or update GitHub release (also creates the tag)
-        if: ${{ !inputs.dry_run }}
         # gh release create makes the tag via the Releases API. Unlike git push,
         # that path is not blocked by the GITHUB_TOKEN workflow-file restriction,
         # so it works even when the target commit's workflows differ from main.
@@ -163,9 +210,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }} # gh has no checkout to infer the repo from
           TAG: ${{ needs.validate.outputs.tag }}
-          HEX: ${{ steps.release_files.outputs.hex }}
-          ELF: ${{ steps.release_files.outputs.elf }}
-          SPDX: ${{ steps.release_files.outputs.spdx }}
           TARGET_SHA: ${{ inputs.sha != '' && inputs.sha || github.sha }}
         run: |
           set -euo pipefail
@@ -175,14 +219,19 @@ jobs:
           # Idempotent: create if missing, else re-attach the files (--clobber) so
           # re-running an existing version refreshes the assets instead of failing.
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$HEX" "$ELF" "$SPDX" --clobber
+            gh release upload "$TAG" release/* --clobber
           else
-            gh release create "$TAG" "$HEX" "$ELF" "$SPDX" --target "$TARGET_SHA" \
+            gh release create "$TAG" release/* --target "$TARGET_SHA" \
               --title "$TAG" --generate-notes $PRERELEASE
           fi
 
+  dry-run-summary:
+    needs: [validate, publish]
+    if: ${{ inputs.dry_run }}
+    runs-on: ubuntu-24.04
+    steps:
       - name: Dry-run summary
-        if: ${{ inputs.dry_run }}
         run: |
           echo "DRY RUN: skipped git tag and GitHub release for ${{ needs.validate.outputs.tag }}."
-          echo "Built ${{ steps.release_files.outputs.hex }}, ${{ steps.release_files.outputs.elf }}, ${{ steps.release_files.outputs.spdx }} and uploaded symbols to Memfault."
+          echo "Built and renamed all boards' files and uploaded symbols to Memfault."
+          echo "Renamed release files are attached as workflow artifacts for inspection."

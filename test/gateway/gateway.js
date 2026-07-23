@@ -5,7 +5,7 @@
  */
 
 /*
- * Minimal MDS gateway for the nRF54L15 DK quickstart-bluetooth firmware.
+ * Minimal MDS gateway for the quickstart-bluetooth firmware (any supported DK).
  * Node port of memfault/web-ble-example's mds.js, using @abandonware/noble.
  * Upstream reference: https://github.com/memfault/web-ble-example
  *

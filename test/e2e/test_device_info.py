@@ -4,7 +4,7 @@
 #
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
-# Validates the `mflt get_device_info` serial-shell command on the nRF54L15 DK
+# Validates the `mflt get_device_info` serial-shell command on a supported DK
 # running the quickstart-bluetooth firmware.
 #
 # Regression coverage: without CONFIG_LOG, this command's output was silently

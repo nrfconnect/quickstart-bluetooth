@@ -12,8 +12,20 @@ metrics and coredumps and serves them over the Memfault Diagnostic Service (MDS)
 to a phone or desktop **gateway**, which uploads them to Memfault over HTTPS.
 **The device itself performs no HTTP/TLS.**
 
-**Supported board:** nRF54L15 DK (`nrf54l15dk/nrf54l15/cpuapp`). This is the only
-supported target.
+**Supported boards:**
+
+| Board | Target | Build |
+|-------|--------|-------|
+| nRF54L15 DK | `nrf54l15dk/nrf54l15/cpuapp` | single image (`--no-sysbuild`) |
+| nRF54LM20 DK | `nrf54lm20dk/nrf54lm20a/cpuapp` | single image (`--no-sysbuild`) |
+| nRF54H20 DK | `nrf54h20dk/nrf54h20/cpuapp` | sysbuild (multi-image) |
+
+The L-series boards are single-core: the Bluetooth controller runs on the
+application core, so the app is a single plain image. The nRF54H20 is multi-core
+— its Bluetooth controller runs on the radio core (cpurad) reached over HCI/IPC
+— so it is built with sysbuild, which also produces the radio image and a radio
+loader. Releases ship one flashable `.hex` per board (for the nRF54H20 the
+per-domain images are merged into one).
 
 ## What the device does
 
@@ -58,12 +70,22 @@ west update
 ## Build & flash
 
 ```sh
+# nRF54L15 DK / nRF54LM20 DK (single-core, plain single image):
 west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild project/app
+west flash
+
+# nRF54LM20 DK:
+west build -b nrf54lm20dk/nrf54lm20a/cpuapp --no-sysbuild project/app
+
+# nRF54H20 DK (multi-core, needs sysbuild for the radio-core image):
+west build -b nrf54h20dk/nrf54h20/cpuapp --sysbuild project/app
 west flash
 ```
 
-The single `zephyr.hex` is the complete image - there is no MCUboot/sysbuild,
-no DFU (OTA is out of scope).
+For the L-series boards the single `zephyr.hex` is the complete image - there is
+no MCUboot, no DFU (OTA is out of scope). The nRF54H20 build produces one image
+per core plus board configuration (UICR/BICR); `west flash` programs them all,
+and releases attach a single merged `.hex`.
 
 ## Provision the Memfault project key
 
@@ -114,8 +136,9 @@ Memfault so coredumps and traces are symbolicated - without a matching ELF,
 Memfault shows *"Unknown location"*.
 
 ```sh
-# zephyr.elf is produced next to zephyr.hex in the build directory:
-#   build/zephyr/zephyr.elf
+# zephyr.elf is produced in the build directory:
+#   build/zephyr/zephyr.elf         # L-series (plain build)
+#   build/app/zephyr/zephyr.elf     # nRF54H20 (sysbuild: the app-core image)
 ```
 
 Upload it via the Memfault web app (Software → Symbol Files) or the Memfault CLI.

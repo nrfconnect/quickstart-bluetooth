@@ -14,7 +14,8 @@ Memfault's Web Bluetooth example, <https://github.com/memfault/web-ble-example>.
 
 - **macOS** (uses CoreBluetooth via noble; Linux works with BlueZ but is untested here).
 - **Node.js 18+** (uses the built-in `fetch`).
-- A `nrf54l15dk` flashed with this firmware and advertising as `Quickstart_Bluetooth`.
+- A supported DK (`nrf54l15dk`, `nrf54lm20dk`, or `nrf54h20dk`) flashed with this
+  firmware and advertising as `Quickstart_Bluetooth`.
 - On first run, macOS will ask to grant your terminal **Bluetooth** permission
   (System Settings → Privacy & Security → Bluetooth). The just-works pairing the
   firmware uses is handled automatically by CoreBluetooth — no manual dialog.

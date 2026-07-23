@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 # Validate the Memfault project-key serial-shell provisioning contract on the
-# nRF54L15 DK running the quickstart-bluetooth firmware:
+# A supported DK running the quickstart-bluetooth firmware:
 #
 #   1. After a clean flash the key is unset  -> read returns "Setting not found".
 #   2. Writing the key and reading it back returns the written value.

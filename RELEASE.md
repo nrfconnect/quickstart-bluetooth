@@ -34,13 +34,19 @@ Given a version, it:
 
 1. validates the version format and derives the git tag + Memfault software
    version (`scripts/app_version.py`);
-2. builds the firmware with `app/VERSION` set to that version
-   (`build-app.yml`), so the device reports the release version to Memfault;
-3. zips `zephyr.hex` + `zephyr.elf`;
-4. uploads `zephyr.elf` as symbols to the Memfault
-   `quickstart-shared-project` (registers the software version for
-   symbolication);
-5. tags the target commit and creates a GitHub release with the zip attached.
+2. builds the firmware for **every supported board** with `app/VERSION` set to
+   that version (`build-app.yml`), so each device reports the release version to
+   Memfault (the nRF54H20 is built with sysbuild; see the board table in the
+   README);
+3. renames each board's `.hex`, `.elf`, and `.spdx` to include the version and
+   board/chip (`quickstart-bluetooth-<tag>-<board>-<chip>.<ext>`) and attaches
+   them directly — no zip (for the nRF54H20 the per-domain images are merged
+   into one `.hex`);
+4. uploads each board's `.elf` as symbols to the Memfault project (each board
+   has its own GNU Build ID; all are registered under the same software version
+   for symbolication);
+5. tags the target commit and creates a single GitHub release with every board's
+   renamed files attached.
 
 Inputs:
 
