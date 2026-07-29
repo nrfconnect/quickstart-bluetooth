@@ -284,7 +284,7 @@ int main(void)
 
 	printk("Bluetooth initialized\n");
 
-	#if defined(CONFIG_SETTINGS)
+#if defined(CONFIG_SETTINGS)
 	/* Loads the stored Memfault project key (memfault/project_key) and BT
 	 * bonds. The runtime key is applied here at boot, not live.
 	 */
