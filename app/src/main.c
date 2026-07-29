@@ -295,12 +295,12 @@ int main(void)
 	 * baked in via CONFIG_QSBT_DEFAULT_PROJECT_KEY. A key written later via
 	 * the settings shell overrides this on the next boot.
 	 */
-	if (IS_ENABLED(CONFIG_MEMFAULT_PROJECT_KEY_SETTINGS) &&
-	    sizeof(CONFIG_QSBT_DEFAULT_PROJECT_KEY) > 1 &&
-	    settings_get_val_len("memfault/project_key") <= 0) {
-		err = memfault_zephyr_port_set_project_key(
-			CONFIG_QSBT_DEFAULT_PROJECT_KEY,
-			sizeof(CONFIG_QSBT_DEFAULT_PROJECT_KEY) - 1);
+	if (IS_ENABLED(CONFIG_MEMFAULT_PROJECT_KEY_SETTINGS)
+	    && sizeof(CONFIG_QSBT_DEFAULT_PROJECT_KEY) > 1
+	    && settings_get_val_len("memfault/project_key") <= 0) {
+		err = memfault_zephyr_port_set_project_key(CONFIG_QSBT_DEFAULT_PROJECT_KEY,
+							   sizeof(CONFIG_QSBT_DEFAULT_PROJECT_KEY)
+								   - 1);
 		if (err) {
 			printk("Failed to set default Memfault project key (err %d)\n", err);
 		}
