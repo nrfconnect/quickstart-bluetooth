@@ -284,19 +284,18 @@ int main(void)
 
 	printk("Bluetooth initialized\n");
 
+	#if defined(CONFIG_SETTINGS)
 	/* Loads the stored Memfault project key (memfault/project_key) and BT
 	 * bonds. The runtime key is applied here at boot, not live.
 	 */
-	if (IS_ENABLED(CONFIG_SETTINGS)) {
-		settings_load();
-	}
+	settings_load();
 
+#if defined(CONFIG_MEMFAULT_PROJECT_KEY_SETTINGS)
 	/* No key provisioned yet: fall back to the build-time default (if any),
 	 * baked in via CONFIG_QSBT_DEFAULT_PROJECT_KEY. A key written later via
 	 * the settings shell overrides this on the next boot.
 	 */
-	if (IS_ENABLED(CONFIG_MEMFAULT_PROJECT_KEY_SETTINGS)
-	    && sizeof(CONFIG_QSBT_DEFAULT_PROJECT_KEY) > 1
+	if (sizeof(CONFIG_QSBT_DEFAULT_PROJECT_KEY) > 1
 	    && settings_get_val_len("memfault/project_key") <= 0) {
 		err = memfault_zephyr_port_set_project_key(CONFIG_QSBT_DEFAULT_PROJECT_KEY,
 							   sizeof(CONFIG_QSBT_DEFAULT_PROJECT_KEY)
@@ -305,6 +304,8 @@ int main(void)
 			printk("Failed to set default Memfault project key (err %d)\n", err);
 		}
 	}
+#endif /* CONFIG_MEMFAULT_PROJECT_KEY_SETTINGS */
+#endif /* CONFIG_SETTINGS */
 
 	err = bt_lbs_init(&lbs_callbacks);
 	if (err) {
