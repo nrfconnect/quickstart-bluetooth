@@ -28,6 +28,7 @@
 # (GITHUB_TOKEN is provided automatically; contents:write lets it tag + release.)
 
 name: Release
+run-name: Release ${{ inputs.version }}${{ inputs.dry_run && ' (dry run)' || '' }}
 
 on:
   workflow_dispatch:
