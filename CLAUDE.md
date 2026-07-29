@@ -43,9 +43,16 @@ merged/signed hex, no DFU zip (OTA is explicitly out of scope).
 - **Runtime project key via settings shell.** The Memfault project key is provisioned over
   the serial shell: `settings write string memfault/project_key <32-char-key>`. **The key
   is applied on boot, not live — a `kernel reboot cold` is required after writing.** A
-  stored key overrides the compile-time `CONFIG_MEMFAULT_NCS_PROJECT_KEY`. The key is
-  stored **unencrypted** (same at-rest protection as baking it into flash). BLE/SMP
-  provisioning is out of scope.
+  stored key overrides the build-time default key (`CONFIG_QSBT_DEFAULT_PROJECT_KEY`, if
+  any — see `app/src/main.c`). The key is stored **unencrypted** (same at-rest protection
+  as baking it into flash). BLE/SMP provisioning is out of scope.
+  - Release builds bake in a real key at build time (CI passes
+    `-DCONFIG_QSBT_DEFAULT_PROJECT_KEY` from the `MEMFAULT_PROJECT_KEY` repo secret — see
+    `release.yml`/`build-app.yml`) so a freshly flashed release artifact reports to
+    Memfault out of the box, without requiring shell provisioning first.
+  - `CONFIG_MEMFAULT_NCS_PROJECT_KEY` is a **dead/deprecated** upstream Kconfig option with
+    no effect when `CONFIG_MEMFAULT_PROJECT_KEY_SETTINGS=y` (always the case here) — do not
+    reintroduce it as the build-time override mechanism.
 - **Memfault feature scope is core-only:** heartbeat metrics + RAM-backed coredump +
   runtime key, on top of the LBS button/LED base. No MCUboot/MCUmgr/SMP/OTA.
 - **Coredump is RAM-backed** (`CONFIG_MEMFAULT_RAM_BACKED_COREDUMP`), so it needs no

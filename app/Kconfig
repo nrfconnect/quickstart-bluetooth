@@ -10,4 +10,16 @@
 config MEMFAULT_NCS_FW_VERSION
 	default "$(APPVERSION)"
 
+config QSBT_DEFAULT_PROJECT_KEY
+	string "Default Memfault project key baked in at build time"
+	depends on MEMFAULT_PROJECT_KEY_SETTINGS
+	help
+	  Optional 32-char Memfault project key applied on first boot if no key
+	  has been provisioned yet via the settings shell (`settings write
+	  string memfault/project_key ...`). Intended to be set at build time
+	  (e.g. `-DCONFIG_QSBT_DEFAULT_PROJECT_KEY="<key>"`) so release
+	  artifacts work out of the box, while a key written later via the
+	  shell still overrides it on the next boot. Left empty, the device
+	  ships with no key until provisioned.
+
 source "Kconfig.zephyr"

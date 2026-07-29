@@ -57,7 +57,8 @@ Inputs:
 - secret `MEMFAULT_ORG_TOKEN` — Organization Auth Token (Bearer) with upload
   rights.
 - secret `MEMFAULT_PROJECT_KEY` — project key baked into the build via
-  `CONFIG_MEMFAULT_NCS_PROJECT_KEY`.
+  `CONFIG_QSBT_DEFAULT_PROJECT_KEY`. Applied as the default key on first boot;
+  a key later written over the settings shell still overrides it.
 - var `MEMFAULT_ORG_SLUG` — Memfault organization slug (from the dashboard
   URL).
 - var/secret `MEMFAULT_PROJECT` — Memfault project slug symbols are uploaded
