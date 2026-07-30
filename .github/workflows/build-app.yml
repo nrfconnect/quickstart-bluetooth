@@ -95,7 +95,7 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends \
             python3-dev bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
-          pip3 install --quiet -r nrf/scripts/requirements-west-ncs-sbom.txt
+          pip3 install --quiet --only-binary :all: -r nrf/scripts/requirements-west-ncs-sbom.txt
 
       - name: Generate SPDX SBOM
         run: |
