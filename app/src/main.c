@@ -12,7 +12,7 @@
  * secured gateway connection; the gateway performs the HTTPS upload. The device
  * never does on-device HTTP/TLS.
  *
- * Controls (nRF54L15 DK):
+ * Controls (nRF54L15 / nRF54LM20 / nRF54H20 DK):
  *   Button 0  LBS button characteristic (standard LBS — central sees the press)
  *   Button 1  DEMO-ONLY crash trigger (forces a fault -> Memfault coredump)
  *   LED 0     run status (1 Hz heartbeat blink)

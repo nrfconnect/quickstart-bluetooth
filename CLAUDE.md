@@ -11,7 +11,15 @@ Service (MDS) BLE gateway path: the device collects heartbeat metrics and coredu
 serves them as chunks to a phone/desktop gateway that performs the HTTPS upload.
 **The device never does on-device HTTP/TLS.**
 
-Target board is **`nrf54l15dk/nrf54l15/cpuapp` only**.
+Supported boards:
+
+- `nrf54l15dk/nrf54l15/cpuapp` — single-core, plain single image.
+- `nrf54lm20dk/nrf54lm20a/cpuapp` — single-core, plain single image.
+- `nrf54h20dk/nrf54h20/cpuapp` — **multi-core**, built with **sysbuild** (see below).
+
+The L-series boards keep the on-app-core Bluetooth controller and the plain
+single-image, no-bootloader model. The nRF54H20's Bluetooth controller runs on
+the radio core (cpurad) over HCI/IPC, so it is the one board built with sysbuild.
 
 ## Build & run (T2 west workspace)
 
@@ -24,13 +32,26 @@ west init -m https://github.com/<org>/quickstart-bluetooth <workspace-dir>
 cd <workspace-dir>
 west update
 
-# Build / flash for the only supported board
-west build -b nrf54l15dk/nrf54l15/cpuapp project/app
+# Build / flash (L-series: plain single image)
+west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild project/app
+west flash
+
+# nRF54LM20 DK
+west build -b nrf54lm20dk/nrf54lm20a/cpuapp --no-sysbuild project/app
+
+# nRF54H20 DK (multi-core: sysbuild builds the app + ipc_radio + radio loader)
+west build -b nrf54h20dk/nrf54h20/cpuapp --sysbuild project/app
 west flash
 ```
 
-The single `zephyr.hex` is the complete image — there is **no MCUboot/sysbuild**, no
-merged/signed hex, no DFU zip (OTA is explicitly out of scope).
+For the **L-series** boards the single `zephyr.hex` is the complete image — **no
+MCUboot/sysbuild**, no merged/signed hex, no DFU zip (OTA is explicitly out of
+scope). The **nRF54H20** is the sole exception: sysbuild is required because its
+Bluetooth controller is a separate `ipc_radio` image on cpurad, loaded from MRAM
+into TCM by a radio loader (still **no MCUboot** — the radio-loader path is the
+bootloader-free variant). CI merges the per-domain hexes into one release `.hex`.
+The H20 support lives under `app/boards/`, `app/common/`, `app/sysbuild/`, and
+`app/Kconfig.sysbuild`, mirroring the upstream `peripheral_lbs` sample.
 
 ## Architecture & key constraints
 
@@ -77,10 +98,11 @@ merged/signed hex, no DFU zip (OTA is explicitly out of scope).
 ## Testing (on-hardware)
 
 The tests under `test/` are **on-hardware bench tests**: they drive a connected
-**nRF54L15 DK** over its USB serial console and BLE. There is no pure-host test suite.
-**If no DK is connected, ask the user whether they want to connect an nRF54L15 DK so
-you can verify functionality before running anything.** On macOS a connected DK shows
-up as `/dev/tty.usbmodem*01/03` (VCOM1 = `…03`); no ports means no board.
+**DK** (nRF54L15, nRF54LM20, or nRF54H20) over its USB serial console and BLE.
+There is no pure-host test suite. **If no DK is connected, ask the user whether
+they want to connect one of the supported DKs so you can verify functionality
+before running anything.** On macOS a connected L-series DK shows up as
+`/dev/tty.usbmodem*01/03` (VCOM1 = `…03`); no ports means no board.
 
 - `test/gateway/` — a phone-free Node/noble MDS gateway that stands in for the mobile
   app (connects, secures the link, drains chunks, optionally uploads). Needs Node on

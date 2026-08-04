@@ -21,7 +21,27 @@ permissions:
 
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      # Supported boards. Keep in sync with the matrix in release.yml.
+      # board-id (<board>-<chip>) is used for artifact/release file names.
+      # sysbuild=true for nRF54H20 (multi-core: BLE controller on cpurad).
+      matrix:
+        include:
+          - board: nrf54l15dk/nrf54l15/cpuapp
+            board-id: nrf54l15dk-nrf54l15
+            sysbuild: false
+          - board: nrf54lm20dk/nrf54lm20a/cpuapp
+            board-id: nrf54lm20dk-nrf54lm20a
+            sysbuild: false
+          - board: nrf54h20dk/nrf54h20/cpuapp
+            board-id: nrf54h20dk-nrf54h20
+            sysbuild: true
     uses: ./.github/workflows/build-app.yml
+    with:
+      board: ${{ matrix.board }}
+      board-id: ${{ matrix.board-id }}
+      sysbuild: ${{ matrix.sysbuild }}
     secrets:
       MEMFAULT_PROJECT_KEY: ${{ secrets.MEMFAULT_PROJECT_KEY }}
 

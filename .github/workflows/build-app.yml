@@ -3,6 +3,24 @@ name: Build app
 on:
   workflow_call:
     inputs:
+      board:
+        description: West board target, e.g. nrf54l15dk/nrf54l15/cpuapp.
+        type: string
+        required: true
+      board-id:
+        description: >-
+          Board identifier used in artifact/release names, <board>-<chip>
+          (e.g. nrf54l15dk-nrf54l15).
+        type: string
+        required: true
+      sysbuild:
+        description: >-
+          Build with sysbuild (multi-image) instead of a single plain image.
+          Required for nRF54H20, whose Bluetooth controller runs on the radio
+          core (cpurad) as a separate image reached over HCI/IPC.
+        type: boolean
+        required: false
+        default: false
       version:
         description: >-
           Release version (vX.Y.Z[-suffix]). When set, app/VERSION is
@@ -12,11 +30,6 @@ on:
         type: string
         required: false
         default: ""
-      artifact-name:
-        description: Name of the uploaded hex+elf artifact.
-        type: string
-        required: false
-        default: quickstart-bluetooth-nrf54l15dk
     secrets:
       MEMFAULT_PROJECT_KEY:
         description: Memfault project key baked into the build via CONFIG_QSBT_DEFAULT_PROJECT_KEY.
@@ -67,25 +80,68 @@ jobs:
       - name: West zephyr-export
         run: west zephyr-export
 
-      - name: Build for nrf54l15dk/nrf54l15/cpuapp
-        # --no-sysbuild: plain app image, no MCUboot/sysbuild.
+      - name: Build for ${{ inputs.board }}
+        # L-series (nrf54l15/nrf54lm20) are single-core: --no-sysbuild yields one
+        # plain image. nRF54H20 needs sysbuild so the ipc_radio controller image
+        # (cpurad) and radio loader are built alongside the app image.
         run: |
-          west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild \
+          set -euo pipefail
+          if [ "${{ inputs.sysbuild }}" = "true" ]; then
+            SYSBUILD_FLAG=--sysbuild
+          else
+            SYSBUILD_FLAG=--no-sysbuild
+          fi
+          west build -b ${{ inputs.board }} $SYSBUILD_FLAG \
             project/app \
             -- \
             -DCONFIG_QSBT_DEFAULT_PROJECT_KEY=\"${{ secrets.MEMFAULT_PROJECT_KEY }}\"
+
+      - name: Resolve the app image build directory
+        id: appdir
+        # With sysbuild the primary app image lands in build/app; a plain build
+        # puts it directly in build. The .elf/.config we care about (Memfault
+        # instrumentation lives in the app image) come from here.
+        run: |
+          if [ "${{ inputs.sysbuild }}" = "true" ]; then
+            echo "dir=build/app" >> "$GITHUB_OUTPUT"
+          else
+            echo "dir=build" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Read Memfault software version/type from the build config
         id: fwver
         # The exact strings the firmware reports, so Memfault symbol uploads link
         # to the right software version (no guessing the Zephyr format).
         run: |
-          CONF=build/zephyr/.config
+          CONF=${{ steps.appdir.outputs.dir }}/zephyr/.config
           VER=$(sed -nE 's/^CONFIG_MEMFAULT_NCS_FW_VERSION="(.*)"$/\1/p' "$CONF")
           TYPE=$(sed -nE 's/^CONFIG_MEMFAULT_NCS_FW_TYPE="(.*)"$/\1/p' "$CONF")
           echo "fw_version=$VER" >> "$GITHUB_OUTPUT"
           echo "fw_type=$TYPE" >> "$GITHUB_OUTPUT"
           echo "Memfault software: type=$TYPE version=$VER"
+
+      - name: Assemble the flashable hex
+        id: hex
+        # Single deliverable per board. nRF54H20 sysbuild emits one hex per
+        # domain (app + ipc_radio + radio_loader + UICR/BICR/periphconf); merge
+        # them into a single flashable image so every board ships one .hex, like
+        # the L-series plain build. mergehex.py is bundled with Zephyr (no
+        # dependency on external command-line tools).
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.sysbuild }}" = "true" ]; then
+            python3 zephyr/scripts/build/mergehex.py \
+              -o build/merged.hex \
+              build/app/zephyr/zephyr.hex \
+              build/ipc_radio/zephyr/zephyr.hex \
+              build/radio_loader/zephyr/zephyr.hex \
+              build/uicr/zephyr/uicr.hex \
+              build/uicr/zephyr/periphconf.hex \
+              build/app/zephyr/bicr.hex
+            echo "path=build/merged.hex" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=build/zephyr/zephyr.hex" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Install SBOM (west ncs-sbom) dependencies
         # scancode-toolkit (one of the default license detectors) needs these
@@ -98,17 +154,26 @@ jobs:
           pip3 install --quiet --only-binary :all: -r nrf/scripts/requirements-west-ncs-sbom.txt
 
       - name: Generate SPDX SBOM
+        # ncs-sbom is sysbuild-aware: given the top-level build dir it reads
+        # domains.yaml and covers every image.
         run: |
           west ncs-sbom -d build \
             --package-supplier "Nordic Semiconductor ASA" \
-            --output-spdx build/zephyr/quickstart-bluetooth.spdx
+            --output-spdx build/quickstart-bluetooth.spdx
+
+      - name: Stage build artifacts with canonical names
+        # Normalize names so downstream (release) handling is board-agnostic:
+        # the H20 merged hex and the L-series zephyr.hex both become zephyr.hex.
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          cp "${{ steps.hex.outputs.path }}" out/zephyr.hex
+          cp "${{ steps.appdir.outputs.dir }}/zephyr/zephyr.elf" out/zephyr.elf
+          cp build/quickstart-bluetooth.spdx out/quickstart-bluetooth.spdx
 
       - name: Upload build artifacts (hex + elf + spdx)
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ inputs.artifact-name }}
-          path: |
-            build/zephyr/zephyr.hex
-            build/zephyr/zephyr.elf
-            build/zephyr/quickstart-bluetooth.spdx
+          name: quickstart-bluetooth-${{ inputs.board-id }}
+          path: out/
           if-no-files-found: error
