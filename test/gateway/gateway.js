@@ -9,7 +9,7 @@
  * Node port of memfault/web-ble-example's mds.js, using @abandonware/noble.
  * Upstream reference: https://github.com/memfault/web-ble-example
  *
- * Default: BLE-only dry run (connect, secure, drain chunks, hexdump) — NO upload.
+ * Default: BLE-only dry run (connect, drain chunks, hexdump) — NO upload.
  * Pass --upload to actually POST chunks to the Memfault data URI read from the device.
  *
  * Usage: node gateway.js [--upload] [--name Quickstart_Bluetooth] [--seconds 30]
@@ -126,8 +126,7 @@ async function run(peripheral) {
   );
   const byUuid = Object.fromEntries(characteristics.map((c) => [c.uuid, c]));
 
-  // First encrypted read triggers CoreBluetooth pairing/security.
-  log("Reading supported features (this triggers pairing if not yet secured)…");
+  log("Reading supported features…");
   const feat = await byUuid[CHAR.supportedFeatures].readAsync();
   log(`  SupportedFeatures: 0x${feat[0].toString(16)}`);
 

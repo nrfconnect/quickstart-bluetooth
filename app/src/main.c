@@ -8,9 +8,10 @@
  * quickstart-bluetooth application.
  *
  * The peripheral_lbs button/LED base with Memfault observability over the
- * Memfault Diagnostic Service (MDS). The device serves Memfault chunks to a
- * secured gateway connection; the gateway performs the HTTPS upload. The device
- * never does on-device HTTP/TLS.
+ * Memfault Diagnostic Service (MDS). The device serves Memfault chunks to the
+ * first connected gateway; the gateway performs the HTTPS upload. The device
+ * never does on-device HTTP/TLS. No pairing/encryption (CONFIG_BT_SMP=n). A
+ * real product handling sensitive data should enable BT_SMP and bonding.
  *
  * Controls (nRF54L15 DK):
  *   Button 0  LBS button characteristic (standard LBS — central sees the press)
@@ -107,6 +108,17 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
 	printk("Connected\n");
 	dk_set_led_on(CON_STATUS_LED);
+
+	/* No pairing/encryption in this sample (CONFIG_BT_SMP=n). The first
+	 * connected central is treated as the MDS-authorized gateway. Capture a
+	 * heartbeat immediately so the device (with its software/hardware
+	 * version and serial) appears in Memfault within seconds instead of
+	 * waiting for the periodic heartbeat timer.
+	 */
+	if (!mds_conn) {
+		mds_conn = conn;
+		memfault_metrics_heartbeat_debug_trigger();
+	}
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
@@ -120,31 +132,6 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	}
 }
 
-static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_security_err err)
-{
-	char addr[BT_ADDR_LE_STR_LEN];
-
-	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-
-	if (err) {
-		printk("Security failed: %s level %u err %d %s\n", addr, level, err,
-		       bt_security_err_to_str(err));
-		return;
-	}
-
-	printk("Security changed: %s level %u\n", addr, level);
-
-	/* Once the gateway link is secured, mark it as the MDS-authorized
-	 * connection and capture a heartbeat immediately so the device (with its
-	 * software/hardware version and serial) appears in Memfault within
-	 * seconds instead of waiting for the periodic heartbeat timer.
-	 */
-	if (level >= BT_SECURITY_L2 && !mds_conn) {
-		mds_conn = conn;
-		memfault_metrics_heartbeat_debug_trigger();
-	}
-}
-
 static void recycled_cb(void)
 {
 	advertising_start();
@@ -153,46 +140,10 @@ static void recycled_cb(void)
 BT_CONN_CB_DEFINE(conn_callbacks) = {
 	.connected = connected,
 	.disconnected = disconnected,
-	.security_changed = security_changed,
 	.recycled = recycled_cb,
 };
 
-static void pairing_complete(struct bt_conn *conn, bool bonded)
-{
-	char addr[BT_ADDR_LE_STR_LEN];
-
-	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-	printk("Pairing completed: %s, bonded: %d\n", addr, bonded);
-}
-
-static void pairing_failed(struct bt_conn *conn, enum bt_security_err reason)
-{
-	char addr[BT_ADDR_LE_STR_LEN];
-
-	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-	printk("Pairing failed conn: %s, reason %d %s\n", addr, reason,
-	       bt_security_err_to_str(reason));
-}
-
-static void auth_cancel(struct bt_conn *conn)
-{
-	char addr[BT_ADDR_LE_STR_LEN];
-
-	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-	printk("Pairing cancelled: %s\n", addr);
-}
-
-/* Just-works pairing (no passkey entry) — the gateway initiates security. */
-static struct bt_conn_auth_cb conn_auth_callbacks = {
-	.cancel = auth_cancel,
-};
-
-static struct bt_conn_auth_info_cb conn_auth_info_callbacks = {
-	.pairing_complete = pairing_complete,
-	.pairing_failed = pairing_failed,
-};
-
-/* Gate MDS access to the secured gateway connection only. */
+/* Gate MDS access to the first connected gateway link only. */
 static bool mds_access_enable(struct bt_conn *conn)
 {
 	return (mds_conn && conn == mds_conn);
@@ -264,18 +215,6 @@ int main(void)
 		return 0;
 	}
 
-	err = bt_conn_auth_cb_register(&conn_auth_callbacks);
-	if (err) {
-		printk("Failed to register authorization callbacks (err %d)\n", err);
-		return 0;
-	}
-
-	err = bt_conn_auth_info_cb_register(&conn_auth_info_callbacks);
-	if (err) {
-		printk("Failed to register authorization info callbacks (err %d)\n", err);
-		return 0;
-	}
-
 	err = bt_enable(NULL);
 	if (err) {
 		printk("Bluetooth init failed (err %d)\n", err);
@@ -285,8 +224,8 @@ int main(void)
 	printk("Bluetooth initialized\n");
 
 #if defined(CONFIG_SETTINGS)
-	/* Loads the stored Memfault project key (memfault/project_key) and BT
-	 * bonds. The runtime key is applied here at boot, not live.
+	/* Loads the stored Memfault project key (memfault/project_key). The
+	 * runtime key is applied here at boot, not live.
 	 */
 	settings_load();
 
