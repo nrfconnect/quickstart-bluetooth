@@ -87,6 +87,31 @@ Project key: <your-32-char-project-key>
 > *how* the key arrives, not its confidentiality. For a hardened product, evaluate
 > settings encryption / the nRF54L KMU / TF-M secure storage.
 
+## Set the advertising name
+
+The BLE advertising name is set over the serial shell and applied on the **next
+boot**:
+
+```sh
+bt name <name>
+kernel reboot cold
+```
+
+`bt name <name>` persists the name (settings key `bt/name`), but the
+advertising data is only rebuilt on the next `kernel reboot cold`. To verify
+it:
+
+```sh
+bt name
+Bluetooth Local Name: <name>
+```
+
+This lets each device be given a distinct, recognizable name during
+onboarding (e.g. per-kit or per-desk), overriding the build-time default
+(`CONFIG_BT_DEVICE_NAME`, currently `Quickstart_Bluetooth`).
+
+Use double quotes if the name has spaces, e.g. `bt name "My Quickstart"`.
+
 ## Find the device ID
 
 The Memfault device serial is the FICR device ID. Read it from the PC:

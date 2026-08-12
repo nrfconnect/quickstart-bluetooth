@@ -20,6 +20,8 @@
  *   LED 2     LBS LED (controlled by the central/gateway — standard LBS)
  */
 
+#include <string.h>
+
 #include <zephyr/kernel.h>
 #include <zephyr/types.h>
 
@@ -38,9 +40,6 @@
 
 #include <memfault/metrics/metrics.h>
 #include <memfault/ports/zephyr/http.h>
-
-#define DEVICE_NAME     CONFIG_BT_DEVICE_NAME
-#define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
 
 #define RUN_STATUS_LED         DK_LED1
 #define CON_STATUS_LED         DK_LED2
@@ -67,22 +66,27 @@ static bool app_button_state;
 static struct bt_conn *mds_conn;
 static struct k_work adv_work;
 
-/* Advertise the app-identity UUID (not the LBS UUID) so the mobile app can
- * recognize this as a quickstart device from the scan list, before
- * connecting. MDS is discovered over GATT after connecting; it does not need
- * to be advertised.
- */
-static const struct bt_data ad[] = {
-	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
-	BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
-};
-
 static const struct bt_data sd[] = {
 	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_QSBT_ID_VAL),
 };
 
 static void adv_work_handler(struct k_work *work)
 {
+	/* Read the name fresh on every (re)start so a name provisioned over the
+	 * `bt name` shell command (settings key bt/name, applied on the next
+	 * boot — see CONFIG_BT_DEVICE_NAME_DYNAMIC) is reflected in the
+	 * advertising data.
+	 */
+	const char *name = bt_get_name();
+	/* Advertise the app-identity UUID (not the LBS UUID) so the mobile app
+	 * can recognize this as a quickstart device from the scan list, before
+	 * connecting. MDS is discovered over GATT after connecting; it does not
+	 * need to be advertised.
+	 */
+	const struct bt_data ad[] = {
+		BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+		BT_DATA(BT_DATA_NAME_COMPLETE, name, strlen(name)),
+	};
 	int err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_2, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
 
 	if (err) {
