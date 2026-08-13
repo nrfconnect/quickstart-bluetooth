@@ -53,6 +53,13 @@ merged/signed hex, no DFU zip (OTA is explicitly out of scope).
   - `CONFIG_MEMFAULT_NCS_PROJECT_KEY` is a **dead/deprecated** upstream Kconfig option with
     no effect when `CONFIG_MEMFAULT_PROJECT_KEY_SETTINGS=y` (always the case here) — do not
     reintroduce it as the build-time override mechanism.
+- **Runtime advertising name via settings shell.** The BLE advertising name is provisioned
+  over the serial shell with Zephyr's built-in `bt name <name>` command (`CONFIG_BT_SHELL`),
+  which persists to the settings key `bt/name` via `CONFIG_BT_DEVICE_NAME_DYNAMIC`. The
+  advertising data (`ad[]` in `app/src/main.c`) is rebuilt from `bt_get_name()` each time
+  advertising (re)starts, so a stored name takes effect after a `kernel reboot cold` — same
+  provisioning UX as the project key above. A stored name overrides the build-time default
+  (`CONFIG_BT_DEVICE_NAME`, currently `Quickstart_Bluetooth`).
 - **Memfault feature scope is core-only:** heartbeat metrics + RAM-backed coredump +
   runtime key, on top of the LBS button/LED base. No MCUboot/MCUmgr/SMP/OTA.
 - **Coredump is RAM-backed** (`CONFIG_MEMFAULT_RAM_BACKED_COREDUMP`), so it needs no
