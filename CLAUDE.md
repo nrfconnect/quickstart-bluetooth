@@ -68,11 +68,19 @@ merged/signed hex, no DFU zip (OTA is explicitly out of scope).
 
 ## App behavior to preserve
 
+- **No pairing/bonding:** `CONFIG_BT_SMP=n` — this sample has no encryption or bonding. A
+  real product handling sensitive data should set `CONFIG_BT_SMP=y` and use bonding
+  (`CONFIG_BT_BONDABLE=y`, the default) instead. Because of this, we can't use the
+  `CONFIG_BT_MDS_PERM_RW_ENCRYPT` option described in [Restricting Access to
+  MDS](https://docs.memfault.com/docs/mcu/mds#restricting-access-to-mds) — that requires a
+  bonded, encrypted link — so this app falls back to the custom `access_enable` callback
+  from that same doc (see MDS access control below).
 - **MDS access control:** register `bt_mds_cb` with an `access_enable` callback that gates
-  MDS access to the secured/connected gateway link (`CONFIG_BT_SMP=y` is required).
-- **Heartbeat-on-connect:** in `security_changed`, once the link is secured, call
-  `memfault_metrics_heartbeat_debug_trigger()` once so the device shows up in Memfault
-  immediately instead of waiting for the periodic timer.
+  MDS access to the first connected gateway link (tracked via `mds_conn` in `connected()`,
+  since there is no security level to check without `CONFIG_BT_SMP`).
+- **Heartbeat-on-connect:** in `connected()`, once the gateway link is captured as
+  `mds_conn`, call `memfault_metrics_heartbeat_debug_trigger()` once so the device shows up
+  in Memfault immediately instead of waiting for the periodic timer.
 - **Crash button (demo-only):** map an LBS button to a forced fault (e.g. `k_oops`) to
   demonstrate a coredump. Comment it clearly as demo-only.
 - Keep the LBS LED/button behavior so it remains a recognizable LBS device for the guide —

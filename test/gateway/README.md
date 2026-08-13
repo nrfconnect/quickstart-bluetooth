@@ -3,9 +3,9 @@
 A small Node.js gateway that acts as the phone/desktop side of the Memfault
 Diagnostic Service (MDS) path, so you can verify the `quickstart-bluetooth`
 firmware end-to-end **without the mobile app**. It connects to the DK over
-Bluetooth Low Energy, secures the link, drains Memfault chunks from the MDS
-data-export characteristic, and (optionally) forwards them to the Memfault
-cloud — exactly what the *nRF Connect for Desktop Quick Start* gateway does.
+Bluetooth Low Energy, drains Memfault chunks from the MDS data-export
+characteristic, and (optionally) forwards them to the Memfault cloud —
+exactly what the *nRF Connect for Desktop Quick Start* gateway does.
 
 It is a Node/[`@abandonware/noble`](https://github.com/abandonware/noble) port of
 Memfault's Web Bluetooth example, <https://github.com/memfault/web-ble-example>.
@@ -16,8 +16,8 @@ Memfault's Web Bluetooth example, <https://github.com/memfault/web-ble-example>.
 - **Node.js 18+** (uses the built-in `fetch`).
 - A `nrf54l15dk` flashed with this firmware and advertising as `Quickstart_Bluetooth`.
 - On first run, macOS will ask to grant your terminal **Bluetooth** permission
-  (System Settings → Privacy & Security → Bluetooth). The just-works pairing the
-  firmware uses is handled automatically by CoreBluetooth — no manual dialog.
+  (System Settings → Privacy & Security → Bluetooth). The firmware does not use
+  pairing/encryption, so there's no pairing dialog to handle.
 
 ## Install
 
@@ -37,8 +37,8 @@ npm run discover        # or: node discover.js
 
 ## Run the gateway
 
-**Dry run (default) — BLE only, no upload.** Connects, secures, and hexdumps the
-drained chunks so you can confirm streaming works without touching the cloud:
+**Dry run (default) — BLE only, no upload.** Connects and hexdumps the drained
+chunks so you can confirm streaming works without touching the cloud:
 
 ```sh
 npm run gateway         # or: node gateway.js
@@ -62,7 +62,7 @@ node gateway.js --upload
 
 ## Exercising a coredump
 
-1. Run the gateway once so the device is known/paired.
+1. Run the gateway once to confirm connectivity.
 2. Press **Button 2** on the DK (the demo crash → `k_oops`; on a `0`-labelled DK
    silkscreen this is the button labelled **`1`**). The device captures a
    RAM-backed coredump and reboots. Don't power-cycle — a RAM-backed coredump
