@@ -12,8 +12,11 @@ metrics and coredumps and serves them over the Memfault Diagnostic Service (MDS)
 to a phone or desktop **gateway**, which uploads them to Memfault over HTTPS.
 **The device itself performs no HTTP/TLS.**
 
-**Supported board:** nRF54L15 DK (`nrf54l15dk/nrf54l15/cpuapp`). This is the only
-supported target.
+**Supported boards:**
+- nRF54L15 DK (`nrf54l15dk/nrf54l15/cpuapp`) — the primary target.
+- nRF54LM20 DK (`nrf54lm20dk/nrf54lm20a/cpuapp/ns`) — runs the app in the TrustZone
+  non-secure domain, which needs a `--sysbuild` build (see below) instead of the plain
+  `--no-sysbuild` build used for the nRF54L15 DK.
 
 ## What the device does
 
@@ -58,12 +61,19 @@ west update
 ## Build & flash
 
 ```sh
+# nRF54L15 DK
 west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild project/app
+west flash
+
+# nRF54LM20 DK (TrustZone /ns build, needs sysbuild for the secure image)
+west build -b nrf54lm20dk/nrf54lm20a/cpuapp/ns --sysbuild project/app
 west flash
 ```
 
-The single `zephyr.hex` is the complete image - there is no MCUboot/sysbuild,
-no DFU (OTA is out of scope).
+On the nRF54L15 DK, the single `zephyr.hex` is the complete image - there is no
+MCUboot, no DFU (OTA is out of scope). On the nRF54LM20 DK's `/ns` build,
+sysbuild produces `merged.hex` (the secure + non-secure images combined) as
+the complete flashable image instead - still no MCUboot, no DFU.
 
 ## Provision the Memfault project key
 
@@ -139,8 +149,8 @@ Memfault so coredumps and traces are symbolicated - without a matching ELF,
 Memfault shows *"Unknown location"*.
 
 ```sh
-# zephyr.elf is produced next to zephyr.hex in the build directory:
-#   build/zephyr/zephyr.elf
+# nRF54L15 DK (--no-sysbuild): build/zephyr/zephyr.elf
+# nRF54LM20 DK (--sysbuild):   build/app/zephyr/zephyr.elf
 ```
 
 Upload it via the Memfault web app (Software → Symbol Files) or the Memfault CLI.
