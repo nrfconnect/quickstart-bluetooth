@@ -1,4 +1,4 @@
-# nRF Cloud Bluetooth Quick Start Sample
+# nRF Cloud Bluetooth Quick Start
 
 [![Release](https://img.shields.io/github/v/release/nrfconnect/quickstart-bluetooth)](https://github.com/nrfconnect/quickstart-bluetooth/releases)
 [![Build](https://img.shields.io/github/actions/workflow/status/nrfconnect/quickstart-bluetooth/build.yml?event=push&branch=main&label=build)](https://github.com/nrfconnect/quickstart-bluetooth/actions/workflows/build.yml?query=branch%3Amain+event%3Apush)
