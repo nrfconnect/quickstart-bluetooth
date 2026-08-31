@@ -12,6 +12,21 @@ on:
         type: string
         required: false
         default: ""
+      board:
+        description: >-
+          West board target to build for, e.g. nrf54l15dk/nrf54l15/cpuapp or
+          nrf54lm20dk/nrf54lm20a/cpuapp/ns.
+        type: string
+        required: false
+        default: nrf54l15dk/nrf54l15/cpuapp
+      sysbuild:
+        description: >-
+          Build with sysbuild instead of --no-sysbuild. Required for /ns
+          (TrustZone non-secure) board targets, which need the secure image
+          built alongside the app.
+        type: boolean
+        required: false
+        default: false
       artifact-name:
         description: Name of the uploaded hex+elf artifact.
         type: string
@@ -67,10 +82,27 @@ jobs:
       - name: West zephyr-export
         run: west zephyr-export
 
-      - name: Build for nrf54l15dk/nrf54l15/cpuapp
-        # --no-sysbuild: plain app image, no MCUboot/sysbuild.
+      - name: Set build paths (plain app vs sysbuild)
+        # Plain (--no-sysbuild) builds put the image at build/zephyr/. A
+        # sysbuild build (needed for /ns TrustZone targets, which build a
+        # secure image alongside the app) nests the app image under
+        # build/app/zephyr/ and produces a top-level build/merged.hex that
+        # combines the secure + non-secure images into the single flashable
+        # artifact.
+        id: paths
         run: |
-          west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild \
+          if [ "${{ inputs.sysbuild }}" = "true" ]; then
+            echo "app_dir=build/app" >> "$GITHUB_OUTPUT"
+            echo "hex=build/merged.hex" >> "$GITHUB_OUTPUT"
+          else
+            echo "app_dir=build" >> "$GITHUB_OUTPUT"
+            echo "hex=build/zephyr/zephyr.hex" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build for ${{ inputs.board }}
+        run: |
+          west build -b "${{ inputs.board }}" \
+            $( [ "${{ inputs.sysbuild }}" = "true" ] && echo --sysbuild || echo --no-sysbuild ) \
             project/app \
             -- \
             -DCONFIG_QSBT_DEFAULT_PROJECT_KEY=\"${{ secrets.MEMFAULT_PROJECT_KEY }}\"
@@ -78,9 +110,11 @@ jobs:
       - name: Read Memfault software version/type from the build config
         id: fwver
         # The exact strings the firmware reports, so Memfault symbol uploads link
-        # to the right software version (no guessing the Zephyr format).
+        # to the right software version (no guessing the Zephyr format). The
+        # app's own .config always lives at <app_dir>/zephyr/.config, whether
+        # or not sysbuild is in play.
         run: |
-          CONF=build/zephyr/.config
+          CONF=${{ steps.paths.outputs.app_dir }}/zephyr/.config
           VER=$(sed -nE 's/^CONFIG_MEMFAULT_NCS_FW_VERSION="(.*)"$/\1/p' "$CONF")
           TYPE=$(sed -nE 's/^CONFIG_MEMFAULT_NCS_FW_TYPE="(.*)"$/\1/p' "$CONF")
           echo "fw_version=$VER" >> "$GITHUB_OUTPUT"
@@ -101,14 +135,14 @@ jobs:
         run: |
           west ncs-sbom -d build \
             --package-supplier "Nordic Semiconductor ASA" \
-            --output-spdx build/zephyr/quickstart-bluetooth.spdx
+            --output-spdx build/quickstart-bluetooth.spdx
 
       - name: Upload build artifacts (hex + elf + spdx)
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact-name }}
           path: |
-            build/zephyr/zephyr.hex
-            build/zephyr/zephyr.elf
-            build/zephyr/quickstart-bluetooth.spdx
+            ${{ steps.paths.outputs.hex }}
+            ${{ steps.paths.outputs.app_dir }}/zephyr/zephyr.elf
+            build/quickstart-bluetooth.spdx
           if-no-files-found: error

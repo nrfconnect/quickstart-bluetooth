@@ -11,7 +11,14 @@ Service (MDS) BLE gateway path: the device collects heartbeat metrics and coredu
 serves them as chunks to a phone/desktop gateway that performs the HTTPS upload.
 **The device never does on-device HTTP/TLS.**
 
-Target board is **`nrf54l15dk/nrf54l15/cpuapp` only**.
+Supported boards:
+- **`nrf54l15dk/nrf54l15/cpuapp`** — the primary target, built `--no-sysbuild` (plain
+  app image, no MCUboot/sysbuild — see below).
+- **`nrf54lm20dk/nrf54lm20a/cpuapp/ns`** — built `--sysbuild`. The `/ns` suffix runs the
+  app in the TrustZone non-secure domain, which requires sysbuild to build the secure
+  image alongside it; this is the one place sysbuild is used in this repo, scoped to
+  this board only. The flashable output is the sysbuild-produced `merged.hex` (secure +
+  non-secure combined), not `zephyr.hex`.
 
 ## Build & run (T2 west workspace)
 
@@ -24,13 +31,19 @@ west init -m https://github.com/<org>/quickstart-bluetooth <workspace-dir>
 cd <workspace-dir>
 west update
 
-# Build / flash for the only supported board
-west build -b nrf54l15dk/nrf54l15/cpuapp project/app
+# Build / flash — primary board (plain app image, no sysbuild)
+west build -b nrf54l15dk/nrf54l15/cpuapp --no-sysbuild project/app
+west flash
+
+# Build / flash — TrustZone /ns board (sysbuild required, see above)
+west build -b nrf54lm20dk/nrf54lm20a/cpuapp/ns --sysbuild project/app
 west flash
 ```
 
-The single `zephyr.hex` is the complete image — there is **no MCUboot/sysbuild**, no
-merged/signed hex, no DFU zip (OTA is explicitly out of scope).
+For `nrf54l15dk`, the single `zephyr.hex` is the complete image — **no MCUboot/sysbuild**,
+no merged/signed hex, no DFU zip (OTA is explicitly out of scope). For `nrf54lm20dk`'s
+`/ns` build, sysbuild produces `merged.hex` (secure + non-secure combined) as the
+complete flashable image instead — still no MCUboot, no DFU zip.
 
 ## Architecture & key constraints
 

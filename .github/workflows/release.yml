@@ -1,18 +1,22 @@
 # Release pipeline for quickstart-bluetooth.
 #
-# Manually dispatched. Given a release version string it:
+# Manually dispatched. Given a release version string it builds both supported
+# boards (nrf54l15dk/nrf54l15/cpuapp, --no-sysbuild; and
+# nrf54lm20dk/nrf54lm20a/cpuapp/ns, --sysbuild since the /ns TrustZone target
+# needs a secure image built alongside the app) and for each:
 #   1. validates the version format and derives the git tag + Memfault software
 #      version (scripts/app_version.py);
 #   2. builds the firmware with app/VERSION set to that version (build-app.yml),
 #      so the device reports the release version to Memfault, and generates the
-#      SPDX SBOM (west ncs-sbom) alongside zephyr.hex + zephyr.elf;
+#      SPDX SBOM (west ncs-sbom) alongside the hex (zephyr.hex, or merged.hex
+#      for the sysbuild /ns leg) + zephyr.elf;
 #   3. renames those three build outputs to include the version + board/chip
 #      (matching the Asset Tracker Template release naming, e.g.
 #      quickstart-bluetooth-v1.2.3-nrf54l15dk-nrf54l15.hex) — no zip;
 #   4. uploads zephyr.elf as symbols to the Memfault "quickstart-shared-project"
 #      (registers the software version for symbolication);
 #   5. tags the target commit and creates a GitHub release with the renamed
-#      .hex, .elf, and .spdx attached directly.
+#      .hex, .elf, and .spdx for both boards attached directly.
 #
 # The version input is the single knob — do NOT hardcode versions elsewhere; the
 # committed app/VERSION stays at 0.0.0-dev and is overwritten at build time.
@@ -74,9 +78,24 @@ jobs:
 
   build:
     needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: nrf54l15dk/nrf54l15/cpuapp
+            sysbuild: false
+            artifact-name: quickstart-bluetooth-nrf54l15dk
+            release-suffix: nrf54l15dk-nrf54l15
+          - board: nrf54lm20dk/nrf54lm20a/cpuapp/ns
+            sysbuild: true
+            artifact-name: quickstart-bluetooth-nrf54lm20dk
+            release-suffix: nrf54lm20dk-nrf54lm20a
     uses: ./.github/workflows/build-app.yml
     with:
       version: ${{ inputs.version }}
+      board: ${{ matrix.board }}
+      sysbuild: ${{ matrix.sysbuild }}
+      artifact-name: ${{ matrix.artifact-name }}
     secrets:
       MEMFAULT_PROJECT_KEY: ${{ secrets.MEMFAULT_PROJECT_KEY }}
 
@@ -88,6 +107,18 @@ jobs:
     defaults:
       run:
         shell: bash
+    strategy:
+      fail-fast: false
+      # Serialised: both legs create-or-attach-to the same tag/release, and
+      # `gh release view` + `gh release create` isn't atomic — running them
+      # concurrently risks both legs seeing "missing" and racing to create it.
+      max-parallel: 1
+      matrix:
+        include:
+          - artifact-name: quickstart-bluetooth-nrf54l15dk
+            release-suffix: nrf54l15dk-nrf54l15
+          - artifact-name: quickstart-bluetooth-nrf54lm20dk
+            release-suffix: nrf54lm20dk-nrf54lm20a
     steps:
       - name: Set up Python (isolated interpreter for memfault-cli)
         uses: actions/setup-python@v6
@@ -97,14 +128,16 @@ jobs:
       - name: Download build artifacts (hex + elf + spdx)
         uses: actions/download-artifact@v8
         with:
-          name: quickstart-bluetooth-nrf54l15dk
+          name: ${{ matrix.artifact-name }}
           path: artifacts
 
       - name: Locate build outputs
+        # zephyr.hex for --no-sysbuild boards, merged.hex (secure + non-secure
+        # combined) for --sysbuild /ns boards.
         id: files
         run: |
           set -euo pipefail
-          HEX=$(find artifacts -name zephyr.hex | head -n1)
+          HEX=$(find artifacts \( -name zephyr.hex -o -name merged.hex \) | head -n1)
           ELF=$(find artifacts -name zephyr.elf | head -n1)
           SPDX=$(find artifacts -name '*.spdx' | head -n1)
           test -n "$HEX" && test -n "$ELF" && test -n "$SPDX"
@@ -118,7 +151,7 @@ jobs:
         id: release_files
         run: |
           set -euo pipefail
-          BASENAME="quickstart-bluetooth-${{ needs.validate.outputs.tag }}-nrf54l15dk-nrf54l15"
+          BASENAME="quickstart-bluetooth-${{ needs.validate.outputs.tag }}-${{ matrix.release-suffix }}"
           mkdir -p release
           cp "${{ steps.files.outputs.hex }}" "release/${BASENAME}.hex"
           cp "${{ steps.files.outputs.elf }}" "release/${BASENAME}.elf"
@@ -130,7 +163,7 @@ jobs:
       - name: Upload release files as workflow artifacts (always, for inspection)
         uses: actions/upload-artifact@v7
         with:
-          name: quickstart-bluetooth-${{ needs.validate.outputs.tag }}-release-files
+          name: quickstart-bluetooth-${{ needs.validate.outputs.tag }}-${{ matrix.release-suffix }}-release-files
           path: release/
           if-no-files-found: error
 
@@ -160,6 +193,8 @@ jobs:
         # gh release create makes the tag via the Releases API. Unlike git push,
         # that path is not blocked by the GITHUB_TOKEN workflow-file restriction,
         # so it works even when the target commit's workflows differ from main.
+        # The publish matrix is serialised (max-parallel: 1): the first leg
+        # creates the tag/release, the second attaches to it via --clobber.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }} # gh has no checkout to infer the repo from
@@ -174,7 +209,8 @@ jobs:
           PRERELEASE=""
           if [[ "$TAG" == *-* ]]; then PRERELEASE="--prerelease"; fi
           # Idempotent: create if missing, else re-attach the files (--clobber) so
-          # re-running an existing version refreshes the assets instead of failing.
+          # re-running an existing version, or a second matrix leg, refreshes/adds
+          # assets instead of failing.
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$HEX" "$ELF" "$SPDX" --clobber
           else
