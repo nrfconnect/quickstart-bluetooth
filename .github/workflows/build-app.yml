@@ -131,11 +131,45 @@ jobs:
             python3-dev bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
           pip3 install --quiet --only-binary :all: -r nrf/scripts/requirements-west-ncs-sbom.txt
 
+      - name: Restore SBOM license cache database
+        # scancode-toolkit is only run per-file as a last resort, and it pays a
+        # multi-second startup cost (loading its whole license-rule database)
+        # on every single invocation. The "cache-database" detector remembers
+        # prior scancode results keyed by file path + content hash, so once a
+        # file has been scanned once, later runs skip invoking scancode for it
+        # entirely. Cache key is intentionally unique per run (with a shared
+        # restore-keys prefix) so the post-job save always uploads the
+        # cache-database.json enriched by this run's "Generate SPDX SBOM" step.
+        uses: actions/cache@v6
+        with:
+          path: sbom-cache-database.json
+          key: sbom-cache-db-${{ github.run_id }}
+          restore-keys: |
+            sbom-cache-db-
+
       - name: Generate SPDX SBOM
         run: |
-          west ncs-sbom -d build \
+          [ -f sbom-cache-database.json ] || echo '{"files": {}}' > sbom-cache-database.json
+          west -vv ncs-sbom -d build \
             --package-supplier "Nordic Semiconductor ASA" \
-            --output-spdx build/quickstart-bluetooth.spdx
+            --license-detectors spdx-tag,full-text,external-file,cache-database,scancode-toolkit,git-info \
+            --optional-license-detectors cache-database,scancode-toolkit \
+            --input-cache-database sbom-cache-database.json \
+            --output-cache-database sbom-cache-database.json \
+            --output-spdx build/quickstart-bluetooth.spdx \
+            2>&1 | tee sbom.log
+
+          # Sanity-check the cache is doing its job: count how many files
+          # actually fell through to a fresh scancode-toolkit subprocess
+          # (the slow path) versus being resolved from cache/cheaper
+          # detectors this run.
+          scancode_runs=$(grep -c "Starting ('scancode'" sbom.log || true)
+          scancode_time=$(grep 'DETECTOR: scancode-toolkit' sbom.log | tail -1 || true)
+          {
+            echo "### SBOM scancode-toolkit usage"
+            echo "- files sent to scancode-toolkit this run: **${scancode_runs}**"
+            echo "- ${scancode_time:-(scancode-toolkit detector timing not found in log)}"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Upload build artifacts (hex + elf + spdx)
         uses: actions/upload-artifact@v7
