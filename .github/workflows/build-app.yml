@@ -86,14 +86,17 @@ jobs:
         # Plain (--no-sysbuild) builds put the image at build/zephyr/. A
         # sysbuild build (needed for /ns TrustZone targets, which build a
         # secure image alongside the app) nests the app image under
-        # build/app/zephyr/ and produces a top-level build/merged.hex that
-        # combines the secure + non-secure images into the single flashable
-        # artifact.
+        # build/app/zephyr/. There's only one sysbuild domain here (the app
+        # itself links in TF-M rather than building it as a separate sysbuild
+        # domain), so sysbuild's own multi-domain merged.hex never gets
+        # produced; the app's postbuild step instead writes the combined
+        # secure+non-secure flashable image to build/app/zephyr/tfm_merged.hex
+        # (see runners.yaml's hex_file, what `west flash` actually uses).
         id: paths
         run: |
           if [ "${{ inputs.sysbuild }}" = "true" ]; then
             echo "app_dir=build/app" >> "$GITHUB_OUTPUT"
-            echo "hex=build/merged.hex" >> "$GITHUB_OUTPUT"
+            echo "hex=build/app/zephyr/tfm_merged.hex" >> "$GITHUB_OUTPUT"
           else
             echo "app_dir=build" >> "$GITHUB_OUTPUT"
             echo "hex=build/zephyr/zephyr.hex" >> "$GITHUB_OUTPUT"
@@ -148,6 +151,9 @@ jobs:
             sbom-cache-db-
 
       - name: Generate SPDX SBOM
+        # west ncs-sbom appends the sysbuild domain name to the output
+        # filename (e.g. quickstart-bluetooth_app.spdx), so the upload step
+        # below globs for it instead of using this exact name.
         run: |
           [ -f sbom-cache-database.json ] || echo '{"files": {}}' > sbom-cache-database.json
           west -vv ncs-sbom -d build \
@@ -178,5 +184,5 @@ jobs:
           path: |
             ${{ steps.paths.outputs.hex }}
             ${{ steps.paths.outputs.app_dir }}/zephyr/zephyr.elf
-            build/quickstart-bluetooth.spdx
+            build/quickstart-bluetooth*.spdx
           if-no-files-found: error

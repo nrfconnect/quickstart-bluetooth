@@ -17,8 +17,10 @@ Supported boards:
 - **`nrf54lm20dk/nrf54lm20a/cpuapp/ns`** — built `--sysbuild`. The `/ns` suffix runs the
   app in the TrustZone non-secure domain, which requires sysbuild to build the secure
   image alongside it; this is the one place sysbuild is used in this repo, scoped to
-  this board only. The flashable output is the sysbuild-produced `merged.hex` (secure +
-  non-secure combined), not `zephyr.hex`.
+  this board only. TF-M is linked into the single `app` sysbuild domain (not built as a
+  separate sysbuild domain), so sysbuild's own multi-domain `merged.hex` is never
+  produced. The flashable output is instead `build/app/zephyr/tfm_merged.hex` (secure +
+  non-secure combined — see that build dir's `runners.yaml` `hex_file`), not `zephyr.hex`.
 
 ## Build & run (T2 west workspace)
 
@@ -42,7 +44,7 @@ west flash
 
 For `nrf54l15dk`, the single `zephyr.hex` is the complete image — **no MCUboot/sysbuild**,
 no merged/signed hex, no DFU zip (OTA is explicitly out of scope). For `nrf54lm20dk`'s
-`/ns` build, sysbuild produces `merged.hex` (secure + non-secure combined) as the
+`/ns` build, `build/app/zephyr/tfm_merged.hex` (secure + non-secure combined) is the
 complete flashable image instead — still no MCUboot, no DFU zip.
 
 ## Architecture & key constraints
