@@ -132,15 +132,18 @@ jobs:
           path: artifacts
 
       - name: Locate build outputs
-        # zephyr.hex for --no-sysbuild boards, merged.hex (secure + non-secure
-        # combined) for --sysbuild /ns boards.
+        # zephyr.hex for --no-sysbuild boards, tfm_merged.hex (secure +
+        # non-secure combined) for --sysbuild /ns boards.
         id: files
         run: |
           set -euo pipefail
-          HEX=$(find artifacts \( -name zephyr.hex -o -name merged.hex \) | head -n1)
+          HEX=$(find artifacts \( -name zephyr.hex -o -name tfm_merged.hex \) | head -n1)
           ELF=$(find artifacts -name zephyr.elf | head -n1)
           SPDX=$(find artifacts -name '*.spdx' | head -n1)
-          test -n "$HEX" && test -n "$ELF" && test -n "$SPDX"
+          if [ -z "$HEX" ] || [ -z "$ELF" ] || [ -z "$SPDX" ]; then
+            echo "::error::Missing build output(s): hex='$HEX' elf='$ELF' spdx='$SPDX'"
+            exit 1
+          fi
           echo "hex=$HEX" >> "$GITHUB_OUTPUT"
           echo "elf=$ELF" >> "$GITHUB_OUTPUT"
           echo "spdx=$SPDX" >> "$GITHUB_OUTPUT"
