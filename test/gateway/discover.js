@@ -8,7 +8,9 @@
 const noble = require("@abandonware/noble");
 
 const NAME = "Quickstart_Bluetooth";
-const OUR_SVC = "b2007aaac20343a58b6fa7f3d001a1e0"; // b2007aaa-c203-43a5-8b6f-a7f3d001a1e0
+// App-identity UUID prefix; the suffix is per-board (see app/CMakeLists.txt)
+const OUR_SVC_PREFIX = "b2007aaac20343a58b6f";
+const isOurSvc = (uuid) => uuid.startsWith(OUR_SVC_PREFIX);
 
 function dash(u) {
   if (u.length !== 32) return u;
@@ -28,15 +30,15 @@ noble.on("discover", async (p) => {
     await p.discoverAllServicesAndCharacteristicsAsync();
   console.log(`\nDiscovered ${services.length} services:\n`);
   for (const svc of services) {
-    const mark = svc.uuid === OUR_SVC ? "  <-- OUR APP-IDENTITY SERVICE" : "";
+    const mark = isOurSvc(svc.uuid) ? "  <-- OUR APP-IDENTITY SERVICE" : "";
     console.log(`• ${dash(svc.uuid)}${mark}`);
     const chars = characteristics.filter((c) => c._serviceUuid === svc.uuid);
     for (const c of chars) {
       console.log(`    - char ${dash(c.uuid)} [${c.properties.join(",")}]`);
     }
   }
-  const found = services.some((s) => s.uuid === OUR_SVC);
-  console.log(`\n${found ? "✅ FOUND" : "❌ NOT FOUND"} app-identity service ${dash(OUR_SVC)}`);
+  const found = services.find((s) => isOurSvc(s.uuid));
+  console.log(`\n${found ? "✅ FOUND" : "❌ NOT FOUND"} app-identity service ${found ? dash(found.uuid) : `${dash(OUR_SVC_PREFIX.padEnd(32, "x"))}`}`);
   await p.disconnectAsync();
   process.exit(0);
 });

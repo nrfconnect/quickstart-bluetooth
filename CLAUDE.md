@@ -101,8 +101,10 @@ complete flashable image instead — still no MCUboot, no DFU zip.
 - Keep the LBS LED/button behavior so it remains a recognizable LBS device for the guide —
   the GATT LBS service/characteristics stay standard regardless of what's advertised.
 - **Scan-time identity:** the scan response advertises the custom app-identity UUID
-  (`BT_UUID_QSBT_ID_VAL`, `b2007aaa-...`), not the LBS UUID, so the mobile app can tag this
-  device as "quick start" in its scan list before connecting.
+  (`BT_UUID_QSBT_ID_VAL`), not the LBS UUID, so the mobile app can tag this device as
+  "quick start" in its scan list before connecting. It is per-board so the app can tell
+  them apart: fixed prefix `b2007aaa-c203-43a5-8b6f-`, last 48 bits = first 12 hex chars of
+  `SHA1(CONFIG_BOARD)` (computed in `app/CMakeLists.txt`).
 
 ## Testing (on-hardware)
 
