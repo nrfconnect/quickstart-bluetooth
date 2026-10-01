@@ -10,6 +10,10 @@
 config MEMFAULT_NCS_FW_VERSION
 	default "$(APPVERSION)"
 
+# Per-board DIS Hardware Revision, so it stays correct on every supported board.
+configdefault BT_DIS_HW_REV_STR
+	default BOARD
+
 config QSBT_DEFAULT_PROJECT_KEY
 	string "Default Memfault project key baked in at build time"
 	depends on MEMFAULT_PROJECT_KEY_SETTINGS
