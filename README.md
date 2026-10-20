@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/nrf-cloud-logo.svg" alt="nRF Cloud" width="306">
+</p>
+
 # nRF Cloud Bluetooth Quick Start
 
 [![Release](https://img.shields.io/github/v/release/nrfconnect/quickstart-bluetooth)](https://github.com/nrfconnect/quickstart-bluetooth/releases)
