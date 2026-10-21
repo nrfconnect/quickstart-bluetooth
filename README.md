@@ -7,9 +7,9 @@
 A production [nRF Connect SDK](https://www.nordicsemi.com/Products/Development-software/nrf-connect-sdk)
 (NCS) application for the *nRF Connect for Desktop Quick Start* guide. It is the
 `peripheral_lbs` sample (button/LED over Bluetooth® LE) with added
-[Memfault](https://memfault.com) observability: the device collects heartbeat
+[nRF Cloud](https://nrfcloud.com) observability: the device collects heartbeat
 metrics and coredumps and serves them over the Memfault Diagnostic Service (MDS)
-to a phone or desktop **gateway**, which uploads them to Memfault over HTTPS.
+to a phone **gateway** app, which uploads them to nRF Cloud over HTTPS.
 **The device itself performs no HTTP/TLS.**
 
 **Supported boards:**
@@ -23,13 +23,13 @@ to a phone or desktop **gateway**, which uploads them to Memfault over HTTPS.
 | Control | Behaviour |
 |---------|-----------|
 | **Button 0** | LBS button characteristic - gateway/central sees the press (standard LBS). |
-| **Button 1** | **Demo crash** - forces a fault (`k_oops`) to generate a Memfault coredump. Demo-only. |
+| **Button 1** | **Demo crash** - forces a fault (`k_oops`) to generate a coredump. Demo-only. |
 | **LED 0** | Run status (1 Hz blink - firmware is alive). |
 | **LED 1** | BLE connection status. |
 | **LED 2** | LBS LED - controlled by the gateway/central (standard LBS). |
 
-Once a gateway connects and the link is secured, the device sends a heartbeat
-immediately, so it shows up in Memfault within seconds instead of waiting for the
+Once a gateway connects, the device sends a heartbeat immediately, so it shows
+up in nRF Cloud within seconds instead of waiting for the
 periodic interval.
 
 ## Prerequisites
@@ -40,7 +40,7 @@ periodic interval.
   or `nrfutil`.
 - [`nrfutil`](https://www.nordicsemi.com/Products/Development-tools/nrf-util) for
   flashing and reading the device ID.
-- A Memfault account and a **32-character project key**.
+- An nRF Cloud account and a **32-character project key**.
 
 ## Bootstrap (T2 west workspace)
 
@@ -72,10 +72,10 @@ west flash
 
 On the nRF54L15 DK, the single `zephyr.hex` is the complete image - there is no
 MCUboot, no DFU (OTA is out of scope). On the nRF54LM20 DK's `/ns` build,
-sysbuild produces `merged.hex` (the secure + non-secure images combined) as
+`build/app/zephyr/tfm_merged.hex` (the secure + non-secure images combined) is
 the complete flashable image instead - still no MCUboot, no DFU.
 
-## Provision the Memfault project key
+## Provision the nRF Cloud project key
 
 The project key is set over the serial shell and applied on the **next boot**:
 
@@ -124,36 +124,35 @@ Use double quotes if the name has spaces, e.g. `bt name "My Quickstart"`.
 
 ## Find the device ID
 
-The Memfault device serial is the FICR device ID. Read it from the PC:
+The nRF Cloud device serial is the FICR device ID. Read it from the PC:
 
 ```sh
 nrfutil device device-info     # or: nrfutil device list
 ```
 
-This lets support correlate a physical board with its Memfault device.
+This lets support correlate a physical board with its nRF Cloud device.
 
 ## Try it end-to-end
 
-1. **Connect** from a gateway. On mobile, use
-   [nRF Toolbox](https://www.nordicsemi.com/Products/Development-tools/nRF-Toolbox);
-   on desktop, the nRF Connect for Desktop gateway. The link must be secured
-   (paired) - MDS access is gated to the secured connection.
-2. The device **appears in Memfault** within seconds with a reboot report.
+1. **Connect** from the
+   [nRF Toolbox](https://www.nordicsemi.com/Products/Development-tools/nRF-Toolbox)
+   mobile app, which acts as the gateway.
+2. The device **appears in nRF Cloud** within seconds with a reboot report.
 3. Press **Button 1** to force a crash. After the device reconnects, the gateway
    uploads the coredump.
 
 ## Upload symbols for symbolication
 
 Every build has a unique **GNU Build ID**. Upload the build's `zephyr.elf` to
-Memfault so coredumps and traces are symbolicated - without a matching ELF,
-Memfault shows *"Unknown location"*.
+nRF Cloud so coredumps and traces are symbolicated - without a matching ELF,
+nRF Cloud shows *"Unknown location"*.
 
 ```sh
 # nRF54L15 DK (--no-sysbuild): build/zephyr/zephyr.elf
 # nRF54LM20 DK (--sysbuild):   build/app/zephyr/zephyr.elf
 ```
 
-Upload it via the Memfault web app (Software → Symbol Files) or the Memfault CLI.
+Upload it via the nRF Cloud web app (Software → Symbol Files) or the Memfault CLI.
 Re-upload on every firmware change; the Build ID changes each build.
 
 ## Releasing
